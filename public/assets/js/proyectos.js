@@ -16,15 +16,38 @@ if (window.proyectosModuleInitialized) {
     const $panelDetalle = $('#panelDetalleProyecto');
     const $lblProyectoTitulo = $('#lblProyectoTitulo');
 
-    const modalProyecto       = new bootstrap.Modal(document.getElementById('modalProyecto'));
-    const modalEtapa          = new bootstrap.Modal(document.getElementById('modalEtapa'));
-    const modalManzana        = new bootstrap.Modal(document.getElementById('modalManzana'));
-    const modalGenerarEtapas  = new bootstrap.Modal(document.getElementById('modalGenerarEtapas'));
-    const modalGenerarManzanas= new bootstrap.Modal(document.getElementById('modalGenerarManzanas'));
+    const modalProyecto        = new bootstrap.Modal(document.getElementById('modalProyecto'));
+    const modalEtapa           = new bootstrap.Modal(document.getElementById('modalEtapa'));
+    const modalManzana         = new bootstrap.Modal(document.getElementById('modalManzana'));
+    const modalGenerarEtapas   = new bootstrap.Modal(document.getElementById('modalGenerarEtapas'));
+    const modalGenerarManzanas = new bootstrap.Modal(document.getElementById('modalGenerarManzanas'));
 
     const $tblEtapasBody    = $('#tblEtapasBody');
     const $tblManzanasBody  = $('#tblManzanasBody');
     const $filtroEtapaManza = $('#filtroEtapaManzana');
+
+    /* =========================
+     * Helper de mensajes
+     * =======================*/
+    function showMsg(type, text, title) {
+      title = title || (type === 'success'
+        ? 'Correcto'
+        : type === 'error'
+        ? 'Error'
+        : type === 'warning'
+        ? 'Atención'
+        : 'Info');
+
+      if (window.Swal) {
+        Swal.fire({
+          icon: type,
+          title: title,
+          text: text || ''
+        });
+      } else {
+        alert((title ? title + ': ' : '') + (text || ''));
+      }
+    }
 
     /* =========================
      * Helpers
@@ -205,12 +228,18 @@ if (window.proyectosModuleInitialized) {
         {
           data: null,
           orderable: false,
-          width: '12%',
+          width: '18%',
           render: function(row) {
+            const nombreEsc = (row.nombre || '').replace(/"/g, '&quot;');
             return `
               <div class="btn-group btn-group-sm">
                 <button class="btn btn-outline-primary btn-proy-edit">Editar</button>
                 <button class="btn btn-outline-danger btn-proy-del">Eliminar</button>
+                <button class="btn btn-outline-warning btn-factores"
+                        data-id="${row.id}"
+                        data-nombre="${nombreEsc}">
+                  Factores
+                </button>
               </div>
             `;
           }
@@ -300,39 +329,60 @@ if (window.proyectosModuleInitialized) {
       const data = tableProyectos.row($(this).closest('tr')).data();
       if (!data) return;
 
-      if (!confirm('¿Eliminar este proyecto y todo su contenido (etapas, manzanas, etc.)?')) return;
+      const doDelete = () => {
+        $.post('index.php?c=proyectos&a=delete', {id: data.id}, function(resp) {
+          let r;
+          try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
+          catch(e){ showMsg('error', 'Respuesta inválida del servidor.'); return; }
 
-      $.post('index.php?c=proyectos&a=delete', {id: data.id}, function(resp) {
-        let r;
-        try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
-        catch(e){ alert('Respuesta inválida'); return; }
+          const ok = r && (r.status === true || r.status === 1 || r.status === '1');
 
-        if (r.status) {
-          tableProyectos.ajax.reload(null, false);
-          if (currentProyectoId == data.id) {
-            $panelDetalle.hide();
-            currentProyectoId = null;
+          if (ok) {
+            tableProyectos.ajax.reload(null, false);
+            if (currentProyectoId == data.id) {
+              $panelDetalle.hide();
+              currentProyectoId = null;
+            }
+            showMsg('success', r.msg || 'Proyecto eliminado correctamente.');
+          } else {
+            showMsg('warning', r.msg || 'No se pudo eliminar el proyecto.');
           }
-        } else {
-          alert(r.msg || 'No se pudo eliminar');
-        }
-      });
+        });
+      };
+
+      if (window.Swal) {
+        Swal.fire({
+          title: 'Eliminar proyecto',
+          text: '¿Deseas eliminar este proyecto y todo su contenido (etapas, manzanas, etc.)?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          cancelButtonText: 'Cancelar'
+        }).then(res => {
+          if (res.isConfirmed) doDelete();
+        });
+      } else {
+        if (confirm('¿Eliminar este proyecto y todo su contenido (etapas, manzanas, etc.)?')) doDelete();
+      }
     });
 
-    // Guardar desde modal proyecto
+    // Guardar desde modal proyecto (nuevo / editar)
     $('#btnSaveProyectoModal').on('click', function() {
       const formData = $('#formProyectoModal').serialize();
 
       $.post('index.php?c=proyectos&a=save', formData, function(resp) {
         let r;
         try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
-        catch(e){ alert('Respuesta inválida'); return; }
+        catch(e){ showMsg('error', 'Respuesta inválida del servidor.'); return; }
 
-        if (r.status) {
+        const ok = r && (r.status === true || r.status === 1 || r.status === '1');
+
+        if (ok) {
           modalProyecto.hide();
           tableProyectos.ajax.reload(null, false);
+          showMsg('success', r.msg || 'Proyecto guardado correctamente.');
         } else {
-          alert(r.msg || 'No se pudo guardar');
+          showMsg('warning', r.msg || 'No se pudo guardar el proyecto.');
         }
       });
     });
@@ -346,13 +396,15 @@ if (window.proyectosModuleInitialized) {
       $.post('index.php?c=proyectos&a=save', formData, function(resp) {
         let r;
         try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
-        catch(e){ alert('Respuesta inválida'); return; }
+        catch(e){ showMsg('error', 'Respuesta inválida del servidor.'); return; }
 
-        if (r.status) {
+        const ok = r && (r.status === true || r.status === 1 || r.status === '1');
+
+        if (ok) {
           tableProyectos.ajax.reload(null, false);
-          alert('Proyecto actualizado');
+          showMsg('success', r.msg || 'Proyecto actualizado correctamente.');
         } else {
-          alert(r.msg || 'No se pudo guardar');
+          showMsg('warning', r.msg || 'No se pudo guardar el proyecto.');
         }
       });
     });
@@ -363,7 +415,7 @@ if (window.proyectosModuleInitialized) {
 
     $('#btnNewEtapa').on('click', function() {
       if (!currentProyectoId) {
-        alert('Selecciona un proyecto primero');
+        showMsg('warning', 'Selecciona un proyecto primero.');
         return;
       }
 
@@ -378,31 +430,31 @@ if (window.proyectosModuleInitialized) {
 
     $('#btnSaveEtapa').on('click', function() {
       const formData = $('#formEtapa').serialize();
-      console.log('Enviando etapa:', formData);
 
       $.post('index.php?c=proyectos&a=etapas_save', formData)
         .done(function(resp) {
-          console.log('Respuesta etapas_save:', resp);
-
           let r;
           try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
           catch(e){
             console.error('JSON inválido en etapas_save:', resp);
-            alert('Respuesta inválida del servidor (etapas_save). Mira la consola.');
+            showMsg('error', 'Respuesta inválida del servidor (etapas_save).');
             return;
           }
 
-          if (r.status) {
+          const ok = r && (r.status === true || r.status === 1 || r.status === '1');
+
+          if (ok) {
             modalEtapa.hide();
             loadEtapas();
             loadEtapasEnSelects();
+            showMsg('success', r.msg || 'Etapa guardada correctamente.');
           } else {
-            alert(r.msg || 'No se pudo guardar etapa');
+            showMsg('warning', r.msg || 'No se pudo guardar la etapa.');
           }
         })
         .fail(function(xhr) {
           console.error('Error AJAX etapas_save:', xhr.status, xhr.responseText);
-          alert('Error en el servidor (etapas_save ' + xhr.status + '). Mira la consola.');
+          showMsg('error', 'Error en el servidor (etapas_save ' + xhr.status + ').');
         });
     });
 
@@ -437,27 +489,45 @@ if (window.proyectosModuleInitialized) {
       const id  = $tr.data('id');
       if (!id) return;
 
-      if (!confirm('¿Eliminar esta etapa? Se eliminarán también sus manzanas y lotes asociados.')) return;
+      const doDelete = () => {
+        $.post('index.php?c=proyectos&a=etapas_delete', {id}, function(resp) {
+          let r;
+          try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
+          catch(e){ showMsg('error', 'Respuesta inválida del servidor.'); return; }
 
-      $.post('index.php?c=proyectos&a=etapas_delete', {id}, function(resp) {
-        let r;
-        try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
-        catch(e){ alert('Respuesta inválida'); return; }
+          const ok = r && (r.status === true || r.status === 1 || r.status === '1');
 
-        if (r.status) {
-          loadEtapas();
-          loadEtapasEnSelects();
-          loadManzanas();
-        } else {
-          alert(r.msg || 'No se pudo eliminar etapa');
-        }
-      });
+          if (ok) {
+            loadEtapas();
+            loadEtapasEnSelects();
+            loadManzanas();
+            showMsg('success', r.msg || 'Etapa eliminada correctamente.');
+          } else {
+            showMsg('warning', r.msg || 'No se pudo eliminar la etapa.');
+          }
+        });
+      };
+
+      if (window.Swal) {
+        Swal.fire({
+          title: 'Eliminar etapa',
+          text: 'Se eliminarán también sus manzanas y lotes asociados. ¿Continuar?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          cancelButtonText: 'Cancelar'
+        }).then(res => {
+          if (res.isConfirmed) doDelete();
+        });
+      } else {
+        if (confirm('¿Eliminar esta etapa? Se eliminarán también sus manzanas y lotes asociados.')) doDelete();
+      }
     });
 
     // Generar etapas
     $('#btnGenerarEtapas').on('click', function() {
       if (!currentProyectoId) {
-        alert('Selecciona un proyecto primero');
+        showMsg('warning', 'Selecciona un proyecto primero.');
         return;
       }
 
@@ -474,14 +544,17 @@ if (window.proyectosModuleInitialized) {
       $.post('index.php?c=proyectos&a=etapas_generate', formData, function(resp) {
         let r;
         try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
-        catch(e){ alert('Respuesta inválida'); return; }
+        catch(e){ showMsg('error', 'Respuesta inválida del servidor.'); return; }
 
-        if (r.status) {
+        const ok = r && (r.status === true || r.status === 1 || r.status === '1');
+
+        if (ok) {
           modalGenerarEtapas.hide();
           loadEtapas();
           loadEtapasEnSelects();
+          showMsg('success', r.msg || 'Etapas generadas correctamente.');
         } else {
-          alert(r.msg || 'No se pudieron generar etapas');
+          showMsg('warning', r.msg || 'No se pudieron generar las etapas.');
         }
       });
     });
@@ -496,7 +569,7 @@ if (window.proyectosModuleInitialized) {
 
     $('#btnNewManzana').on('click', function() {
       if (!currentProyectoId) {
-        alert('Selecciona un proyecto primero');
+        showMsg('warning', 'Selecciona un proyecto primero.');
         return;
       }
 
@@ -512,30 +585,30 @@ if (window.proyectosModuleInitialized) {
 
     $('#btnSaveManzana').on('click', function() {
       const formData = $('#formManzana').serialize();
-      console.log('Enviando manzana:', formData);
 
       $.post('index.php?c=proyectos&a=manzanas_save', formData)
         .done(function(resp) {
-          console.log('Respuesta manzanas_save:', resp);
-
           let r;
           try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
           catch(e){
             console.error('JSON inválido en manzanas_save:', resp);
-            alert('Respuesta inválida del servidor (manzanas_save). Mira la consola.');
+            showMsg('error', 'Respuesta inválida del servidor (manzanas_save).');
             return;
           }
 
-          if (r.status) {
+          const ok = r && (r.status === true || r.status === 1 || r.status === '1');
+
+          if (ok) {
             modalManzana.hide();
             loadManzanas();
+            showMsg('success', r.msg || 'Manzana guardada correctamente.');
           } else {
-            alert(r.msg || 'No se pudo guardar manzana');
+            showMsg('warning', r.msg || 'No se pudo guardar la manzana.');
           }
         })
         .fail(function(xhr) {
           console.error('Error AJAX manzanas_save:', xhr.status, xhr.responseText);
-          alert('Error en el servidor (manzanas_save ' + xhr.status + '). Mira la consola.');
+          showMsg('error', 'Error en el servidor (manzanas_save ' + xhr.status + ').');
         });
     });
 
@@ -576,25 +649,43 @@ if (window.proyectosModuleInitialized) {
       const id  = $tr.data('id');
       if (!id) return;
 
-      if (!confirm('¿Eliminar esta manzana? Se eliminarán también sus lotes.')) return;
+      const doDelete = () => {
+        $.post('index.php?c=proyectos&a=manzanas_delete', {id}, function(resp) {
+          let r;
+          try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
+          catch(e){ showMsg('error', 'Respuesta inválida del servidor.'); return; }
 
-      $.post('index.php?c=proyectos&a=manzanas_delete', {id}, function(resp) {
-        let r;
-        try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
-        catch(e){ alert('Respuesta inválida'); return; }
+          const ok = r && (r.status === true || r.status === 1 || r.status === '1');
 
-        if (r.status) {
-          loadManzanas();
-        } else {
-          alert(r.msg || 'No se pudo eliminar manzana');
-        }
-      });
+          if (ok) {
+            loadManzanas();
+            showMsg('success', r.msg || 'Manzana eliminada correctamente.');
+          } else {
+            showMsg('warning', r.msg || 'No se pudo eliminar la manzana.');
+          }
+        });
+      };
+
+      if (window.Swal) {
+        Swal.fire({
+          title: 'Eliminar manzana',
+          text: 'Se eliminarán también sus lotes asociados. ¿Continuar?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, eliminar',
+          cancelButtonText: 'Cancelar'
+        }).then(res => {
+          if (res.isConfirmed) doDelete();
+        });
+      } else {
+        if (confirm('¿Eliminar esta manzana? Se eliminarán también sus lotes.')) doDelete();
+      }
     });
 
     // Generar manzanas
     $('#btnGenerarManzanas').on('click', function() {
       if (!currentProyectoId) {
-        alert('Selecciona un proyecto primero');
+        showMsg('warning', 'Selecciona un proyecto primero.');
         return;
       }
 
@@ -613,16 +704,315 @@ if (window.proyectosModuleInitialized) {
       $.post('index.php?c=proyectos&a=manzanas_generate', formData, function(resp) {
         let r;
         try { r = (typeof resp === 'string') ? JSON.parse(resp) : resp; }
-        catch(e){ alert('Respuesta inválida'); return; }
+        catch(e){ showMsg('error', 'Respuesta inválida del servidor.'); return; }
 
-        if (r.status) {
+        const ok = r && (r.status === true || r.status === 1 || r.status === '1');
+
+        if (ok) {
           modalGenerarManzanas.hide();
           loadManzanas();
+          showMsg('success', r.msg || 'Manzanas generadas correctamente.');
         } else {
-          alert(r.msg || 'No se pudieron generar manzanas');
+          showMsg('warning', r.msg || 'No se pudieron generar las manzanas.');
         }
       });
     });
+
+    /* =====================================================
+     * FACTORES POR PROYECTO (CRUD) - ahora en Proyectos
+     * =====================================================*/
+
+    if ($('#modalFactoresProyecto').length) {
+
+      const fpAjaxJSON = (url, method, data, onOk) => {
+        $.ajax({
+          url: url,
+          method: method || 'GET',
+          data: data || {},
+          dataType: 'json'
+        })
+          .done(function (resp) {
+            if (onOk) onOk(resp);
+          })
+          .fail(function (jqXHR, textStatus, errorThrown) {
+            console.error('AJAX factores error', textStatus, errorThrown, jqXHR.responseText);
+            showMsg('error', 'Ocurrió un error al procesar factores.');
+          });
+      };
+
+      const $modalFactores       = $('#modalFactoresProyecto');
+      const $fpNombreProyecto    = $('#fp_nombreProyecto');
+      const $fpIdProyecto        = $('#fp_idProyecto');
+      const $fpTablaBody         = $('#fp_tablaFactores tbody');
+      const $fpForm              = $('#fp_formFactor');
+      const $fpFormTitulo        = $('#fp_formTitulo');
+      const $fpIdFactor          = $('#fp_idFactor');
+      const $fpCatFactor         = $('#fp_catFactor');
+      const $fpNombre            = $('#fp_nombre');
+      const $fpCodigo            = $('#fp_codigo');
+      const $fpValorPct          = $('#fp_valorPct');
+      const $fpActivo            = $('#fp_activo');
+      const $modalEjemplos       = $('#modalFactoresEjemplos');
+      const $fpEjemplosContainer = $('#fp_ejemplosContainer');
+
+      // Botón "Factores"
+      $('#tblProyectos').on('click', '.btn-factores', function (e) {
+        e.stopPropagation();
+
+        const idProyecto = $(this).data('id');
+        const nombre     = $(this).data('nombre');
+
+        $fpIdProyecto.val(idProyecto);
+        $fpNombreProyecto.text(nombre || '');
+        fpLimpiarFormulario();
+        fpCargarFactores(idProyecto);
+
+        const modal = new bootstrap.Modal($modalFactores[0]);
+        modal.show();
+      });
+
+      function fpCargarFactores(idProyecto) {
+        $fpTablaBody.html('<tr><td colspan="5" class="text-center small text-muted">Cargando...</td></tr>');
+
+        fpAjaxJSON(
+          'index.php?c=proyectos&a=factores_list',
+          'GET',
+          { id_proyecto: idProyecto },
+          function (resp) {
+            const factores = resp.data || resp;
+
+            if (!factores || !factores.length) {
+              $fpTablaBody.html('<tr><td colspan="5" class="text-center small text-muted">Sin factores registrados.</td></tr>');
+              return;
+            }
+
+            const rows = factores.map(f => {
+              const activoBadge = (f.activo == 1 || f.activo === '1')
+                ? '<span class="badge bg-success">Sí</span>'
+                : '<span class="badge bg-secondary">No</span>';
+
+              const codigo = f.codigo || '';
+
+              return `
+                <tr data-id="${f.id}" data-codigo="${codigo.replace(/"/g, '&quot;')}">
+                  <td>${f.cat_factor || ''}</td>
+                  <td>${f.nombre || ''}</td>
+                  <td class="text-end">${(parseFloat(f.valor_pct) || 0).toFixed(2)}%</td>
+                  <td class="text-center">${activoBadge}</td>
+                  <td class="text-center">
+                    <button type="button" class="btn btn-sm btn-outline-primary fp-btn-editar">Editar</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger fp-btn-eliminar">Eliminar</button>
+                  </td>
+                </tr>
+              `;
+            });
+
+            $fpTablaBody.html(rows.join(''));
+          }
+        );
+      }
+
+      function fpLimpiarFormulario() {
+        $fpFormTitulo.text('Nuevo factor');
+        $fpIdFactor.val('');
+        $fpCatFactor.val('');
+        $fpNombre.val('');
+        $fpCodigo.val('');
+        $fpValorPct.val('');
+        $fpActivo.prop('checked', true);
+      }
+
+      $('#fp_btnLimpiar').on('click', function () {
+        fpLimpiarFormulario();
+      });
+
+      // Editar factor
+      $fpTablaBody.on('click', '.fp-btn-editar', function () {
+        const $tr       = $(this).closest('tr');
+        const id        = $tr.data('id');
+        const cat       = $tr.find('td').eq(0).text().trim();
+        const nombre    = $tr.find('td').eq(1).text().trim();
+        const valorTexto= $tr.find('td').eq(2).text().replace('%', '').trim();
+        const activo    = $tr.find('.badge.bg-success').length > 0;
+        const codigo    = $tr.data('codigo') || '';
+
+        $fpFormTitulo.text('Editar factor');
+        $fpIdFactor.val(id);
+        $fpCatFactor.val(cat);
+        $fpNombre.val(nombre);
+        $fpCodigo.val(codigo);
+        $fpValorPct.val(valorTexto);
+        $fpActivo.prop('checked', activo);
+      });
+
+      // Eliminar factor
+      $fpTablaBody.on('click', '.fp-btn-eliminar', function () {
+        const $tr = $(this).closest('tr');
+        const id  = $tr.data('id');
+        const nombre = $tr.find('td').eq(1).text().trim();
+
+        const doDelete = () => {
+          fpAjaxJSON(
+            'index.php?c=proyectos&a=factores_delete',
+            'POST',
+            { id },
+            function (resp) {
+              const ok = resp && (resp.status === true || resp.status === 1 || resp.status === '1');
+
+              if (ok) {
+                showMsg('success', resp.msg || 'Factor eliminado correctamente.');
+                const idProyecto = $fpIdProyecto.val();
+                fpCargarFactores(idProyecto);
+              } else {
+                showMsg('warning', (resp && resp.msg) || 'No se pudo eliminar el factor.');
+              }
+            }
+          );
+        };
+
+        if (window.Swal) {
+          Swal.fire({
+            title: 'Eliminar factor',
+            text: '¿Seguro que deseas eliminar el factor "' + nombre + '"?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+          }).then(res => {
+            if (res.isConfirmed) doDelete();
+          });
+        } else {
+          if (confirm('¿Eliminar el factor "' + nombre + '"?')) doDelete();
+        }
+      });
+
+      // Guardar factor
+      $fpForm.on('submit', function (e) {
+        e.preventDefault();
+
+        const idProyecto = $fpIdProyecto.val();
+        if (!idProyecto) {
+          showMsg('error', 'No se encontró el proyecto para asociar el factor.');
+          return;
+        }
+
+        const payload = {
+          id         : $fpIdFactor.val(),
+          id_proyecto: idProyecto,
+          cat_factor : $fpCatFactor.val(),
+          codigo     : $fpCodigo.val(),
+          nombre     : $fpNombre.val(),
+          valor_pct  : $fpValorPct.val(),
+          activo     : $fpActivo.is(':checked') ? 1 : 0
+        };
+
+        fpAjaxJSON(
+          'index.php?c=proyectos&a=factores_save',
+          'POST',
+          payload,
+          function (resp) {
+            const ok = resp && (resp.status === true || resp.status === 1 || resp.status === '1');
+
+            if (ok) {
+              showMsg('success', resp.msg || 'Factor guardado correctamente.');
+              fpLimpiarFormulario();
+              fpCargarFactores(idProyecto);
+            } else {
+              showMsg('warning', (resp && resp.msg) || 'No se pudo guardar el factor.');
+            }
+          }
+        );
+      });
+
+      // -------- Ejemplos de factores (factores.json) --------
+      $('#fp_btnEjemplos').on('click', function () {
+        if ($fpEjemplosContainer.children().length > 0) {
+          const modalEj = new bootstrap.Modal($modalEjemplos[0]);
+          modalEj.show();
+          return;
+        }
+
+        $.getJSON('app/Views/lotes/factores.json')
+          .done(function (data) {
+            const categorias = Object.keys(data || {});
+            if (!categorias.length) {
+              $fpEjemplosContainer.html('<p class="text-muted">No se encontraron ejemplos.</p>');
+            } else {
+              let html = '<div class="accordion" id="fp_ejemplosAccordion">';
+              categorias.forEach((cat, idx) => {
+                const catId = 'fpCat' + idx;
+                html += `
+                  <div class="accordion-item">
+                    <h2 class="accordion-header" id="${catId}_header">
+                      <button class="accordion-button ${idx > 0 ? 'collapsed' : ''}" type="button"
+                              data-bs-toggle="collapse" data-bs-target="#${catId}_body">
+                        ${cat}
+                      </button>
+                    </h2>
+                    <div id="${catId}_body" class="accordion-collapse collapse ${idx === 0 ? 'show' : ''}"
+                         data-bs-parent="#fp_ejemplosAccordion">
+                      <div class="accordion-body p-2">
+                `;
+                const arr = data[cat] || [];
+                if (!arr.length) {
+                  html += '<p class="text-muted small mb-0">Sin ejemplos.</p>';
+                } else {
+                  html += '<ul class="list-group list-group-flush">';
+                  arr.forEach((item) => {
+                    const nombre = item.nombre || '';
+                    const desc   = item.descripcion || '';
+                    const codigo = item.codigo || '';
+
+                    html += `
+                      <li class="list-group-item list-group-item-action fp-ejemplo-item"
+                          data-cat="${cat}"
+                          data-nombre="${nombre.replace(/"/g, '&quot;')}"
+                          data-codigo="${codigo.replace(/"/g, '&quot;')}"
+                          data-descripcion="${(desc || '').replace(/"/g, '&quot;')}">
+                        <div class="fw-semibold">
+                          ${nombre}${codigo ? ' <span class="text-muted">(' + codigo + ')</span>' : ''}
+                        </div>
+                        <div class="small text-muted">${desc}</div>
+                      </li>
+                    `;
+                  });
+                  html += '</ul>';
+                }
+                html += `
+                      </div>
+                    </div>
+                  </div>
+                `;
+              });
+              html += '</div>';
+              $fpEjemplosContainer.html(html);
+            }
+
+            const modalEj = new bootstrap.Modal($modalEjemplos[0]);
+            modalEj.show();
+          })
+          .fail(function (jqXHR, textStatus, errorThrown) {
+            console.error('Error cargando factores.json', textStatus, errorThrown);
+            showMsg('error', 'No se pudieron cargar los ejemplos de factores.');
+          });
+      });
+
+      // Click en ejemplo → llenar formulario
+      $fpEjemplosContainer.on('click', '.fp-ejemplo-item', function () {
+        const cat    = $(this).data('cat');
+        const nombre = $(this).data('nombre');
+        const codigo = $(this).data('codigo');
+
+        $fpCatFactor.val(cat);
+        $fpNombre.val(nombre);
+        $fpCodigo.val(codigo);
+        $fpFormTitulo.text('Nuevo factor (desde ejemplo)');
+
+        const modalEj = bootstrap.Modal.getInstance($modalEjemplos[0]);
+        if (modalEj) modalEj.hide();
+      });
+
+    } // fin if #modalFactoresProyecto
 
   });
 }

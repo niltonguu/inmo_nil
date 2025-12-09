@@ -1,11 +1,17 @@
 <?php
 // app/Controllers/ProyectosController.php
+
 require_once __DIR__ . '/../Controller.php';
 require_once __DIR__ . '/../Models/ProyectosModel.php';
+require_once __DIR__ . '/../Models/FactoresModel.php';
 
 class ProyectosController extends Controller
 {
+    /** @var ProyectosModel */
     private $model;
+
+    /** @var FactoresModel */
+    private $factoresModel;
 
     public function __construct()
     {
@@ -15,7 +21,8 @@ class ProyectosController extends Controller
             exit;
         }
 
-        $this->model = new ProyectosModel();
+        $this->model         = new ProyectosModel();
+        $this->factoresModel = new FactoresModel();
     }
 
     /* =========================
@@ -34,7 +41,9 @@ class ProyectosController extends Controller
     public function list()
     {
         header('Content-Type: application/json; charset=utf-8');
+
         $rows = $this->model->getAllProyectos();
+
         echo json_encode(['data' => $rows]);
         exit;
     }
@@ -50,6 +59,7 @@ class ProyectosController extends Controller
         }
 
         $row = $this->model->getProyectoById($id);
+
         echo json_encode($row);
         exit;
     }
@@ -120,6 +130,7 @@ class ProyectosController extends Controller
         }
 
         $rows = $this->model->getEtapasByProyecto($id_proyecto);
+
         echo json_encode($rows);
         exit;
     }
@@ -134,7 +145,7 @@ class ProyectosController extends Controller
             exit;
         }
 
-        $data = $_POST;
+        $data        = $_POST;
         $id_proyecto = (int)($data['id_proyecto'] ?? 0);
 
         if (!$id_proyecto || empty($data['nombre'])) {
@@ -213,8 +224,8 @@ class ProyectosController extends Controller
 
         $id_proyecto = (int)($_GET['id_proyecto'] ?? 0);
         $id_etapa    = isset($_GET['id_etapa']) && $_GET['id_etapa'] !== ''
-                       ? (int)$_GET['id_etapa']
-                       : null;
+            ? (int)$_GET['id_etapa']
+            : null;
 
         if (!$id_proyecto) {
             echo json_encode([]);
@@ -222,6 +233,7 @@ class ProyectosController extends Controller
         }
 
         $rows = $this->model->getManzanasByProyectoYEtapa($id_proyecto, $id_etapa);
+
         echo json_encode($rows);
         exit;
     }
@@ -236,7 +248,7 @@ class ProyectosController extends Controller
             exit;
         }
 
-        $data = $_POST;
+        $data     = $_POST;
         $id_etapa = (int)($data['id_etapa'] ?? 0);
 
         if (!$id_etapa || empty($data['codigo'])) {
@@ -302,6 +314,81 @@ class ProyectosController extends Controller
         echo json_encode([
             'status' => $ok,
             'msg'    => $ok ? 'Manzanas generadas' : 'No se pudieron generar'
+        ]);
+        exit;
+    }
+
+    /* =========================
+     * FACTORES POR PROYECTO
+     * =======================*/
+
+    // GET: lista de factores del proyecto
+    public function factores_list()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        $id_proyecto = (int)($_GET['id_proyecto'] ?? 0);
+        if (!$id_proyecto) {
+            echo json_encode(['data' => []]);
+            exit;
+        }
+
+        $rows = $this->factoresModel->getFactoresByProyecto($id_proyecto);
+
+        echo json_encode(['data' => $rows]);
+        exit;
+    }
+
+    // POST: crear / actualizar factor
+    public function factores_save()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['status' => false, 'msg' => 'Método no permitido']);
+            exit;
+        }
+
+        $data        = $_POST;
+        $id_proyecto = (int)($data['id_proyecto'] ?? 0);
+
+        if (!$id_proyecto || empty($data['nombre']) || empty($data['cat_factor'])) {
+            echo json_encode(['status' => false, 'msg' => 'Proyecto, nombre y categoría son obligatorios']);
+            exit;
+        }
+
+        $ok = $this->factoresModel->saveFactor($data);
+
+        echo json_encode([
+            'status' => $ok,
+            'msg'    => $ok ? 'Factor guardado' : 'No se pudo guardar el factor'
+        ]);
+        exit;
+    }
+
+    // POST: eliminar factor
+    public function factores_delete()
+    {
+        header('Content-Type: application/json; charset=utf-8');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['status' => false, 'msg' => 'Método no permitido']);
+            exit;
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        if (!$id) {
+            echo json_encode(['status' => false, 'msg' => 'ID de factor inválido']);
+            exit;
+        }
+
+        $ok = $this->factoresModel->deleteFactor($id);
+
+        echo json_encode([
+            'status' => $ok,
+            'msg'    => $ok ? 'Factor eliminado' : 'No se pudo eliminar el factor'
         ]);
         exit;
     }

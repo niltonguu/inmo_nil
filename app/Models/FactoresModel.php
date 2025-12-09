@@ -5,7 +5,8 @@ require_once __DIR__ . '/../Config/Database.php';
 
 class FactoresModel
 {
-    private PDO $db;
+    /** @var PDO */
+    private $db;
 
     public function __construct()
     {
@@ -19,9 +20,10 @@ class FactoresModel
     public function getFactoresByProyecto(int $idProyecto): array
     {
         $sql = "
-            SELECT 
+            SELECT
                 id,
                 id_proyecto,
+                codigo,
                 nombre,
                 cat_factor,
                 valor_pct,
@@ -45,14 +47,17 @@ class FactoresModel
         $idProyecto = (int)($data['id_proyecto'] ?? 0);
         $nombre     = trim($data['nombre'] ?? '');
         $catFactor  = trim($data['cat_factor'] ?? '');
+        $codigo     = trim($data['codigo'] ?? '');
         $valorPct   = isset($data['valor_pct']) ? (float)$data['valor_pct'] : 0.0;
         $activo     = isset($data['activo']) && $data['activo'] ? 1 : 0;
 
         if ($id > 0) {
+            // UPDATE
             $sql = "
                 UPDATE factores
-                SET 
+                SET
                     id_proyecto = :id_proyecto,
+                    codigo      = :codigo,
                     nombre      = :nombre,
                     cat_factor  = :cat_factor,
                     valor_pct   = :valor_pct,
@@ -61,9 +66,11 @@ class FactoresModel
                 WHERE id = :id
             ";
         } else {
+            // INSERT
             $sql = "
                 INSERT INTO factores (
                     id_proyecto,
+                    codigo,
                     nombre,
                     cat_factor,
                     valor_pct,
@@ -71,6 +78,7 @@ class FactoresModel
                     created_at
                 ) VALUES (
                     :id_proyecto,
+                    :codigo,
                     :nombre,
                     :cat_factor,
                     :valor_pct,
@@ -82,6 +90,7 @@ class FactoresModel
 
         $params = [
             ':id_proyecto' => $idProyecto,
+            ':codigo'      => $codigo,
             ':nombre'      => $nombre,
             ':cat_factor'  => $catFactor,
             ':valor_pct'   => $valorPct,

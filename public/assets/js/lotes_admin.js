@@ -3,12 +3,12 @@ console.log('lotes_admin.js cargado');
 
 $(function () {
 
-  const ajaxJSON        = LOTES.ajaxJSON;
-  const loadProyectos   = LOTES.loadProyectosSelect;
-  const loadEtapas      = LOTES.loadEtapasSelect;
-  const loadManzanas    = LOTES.loadManzanasSelect;
-  const loadClientesSel = LOTES.loadClientesSelect;
-  const estadoBadge     = LOTES.formatEstadoLoteBadge;
+  const ajaxJSON      = LOTES.ajaxJSON;
+  const loadProyectos = LOTES.loadProyectosSelect;
+  const loadEtapas    = LOTES.loadEtapasSelect;
+  const loadManzanas  = LOTES.loadManzanasSelect;
+  const loadClientes  = LOTES.loadClientesSelect;
+  const estadoBadge   = LOTES.formatEstadoLoteBadge;
 
   // -------------------------------------------------
   // DOM refs
@@ -17,7 +17,6 @@ $(function () {
   const $fEtapa    = $('#filtroEtapa');
   const $fManzana  = $('#filtroManzana');
   const $fEstado   = $('#filtroEstado');
-
   const $tabla     = $('#tablaLotes');
 
   // Modal lote (alta/edición)
@@ -28,19 +27,30 @@ $(function () {
   const $modalMasivo = $('#modalLotesMasivos');
   const $formMasivo  = $('#formLotesMasivos');
 
+  // Modal FACTORES por lote
+  const $modalFactores      = $('#modalLoteFactores');
+  const $formFactores       = $('#formLoteFactores');
+  const $tblFactoresBody    = $('#tblFactoresLoteBody');
+  const $lblLoteTituloFact  = $('#lblLoteTituloFactores');
+  const $lblFactorTotal     = $('#lblFactorTotal');
+  const $lblFactorRango     = $('#lblFactorRango');
+  const $lblPrecioBase      = $('#lblPrecioBase');
+  const $lblPrecioFinal     = $('#lblPrecioFinal');
+
   let dt = null;
 
   // -------------------------------------------------
-  // Inicialización de filtros
+  // Filtros
   // -------------------------------------------------
-
   function initCombosFiltros() {
     loadProyectos($fProyecto, 'Todos los proyectos');
 
     $fProyecto.on('change', function () {
       const idProyecto = $(this).val();
       loadEtapas($fEtapa, idProyecto, 'Todas las etapas');
-      $fManzana.empty().append($('<option>', { value: '' }).text('Todas las manzanas')).trigger('change');
+      $fManzana.empty()
+        .append($('<option>', { value: '' }).text('Todas las manzanas'))
+        .trigger('change');
       recargarTabla();
     });
 
@@ -57,7 +67,6 @@ $(function () {
   // -------------------------------------------------
   // DataTable Admin
   // -------------------------------------------------
-
   function initDataTable() {
     dt = $tabla.DataTable({
       processing: true,
@@ -85,17 +94,17 @@ $(function () {
         {
           data: 'precio_base',
           title: 'Precio base',
-          render: d => d ? 'S/ ' + parseFloat(d).toFixed(2) : ''
+          render: d => d ? 'S/ ' + parseFloat(d).toFixed(2) : 'S/ 0.00'
         },
         {
           data: 'factor_pct_total',
           title: 'Factor (%)',
-          render: d => d !== null ? parseFloat(d).toFixed(2) + '%' : ''
+          render: d => d !== null ? parseFloat(d).toFixed(2) + '%' : '0.00%'
         },
         {
           data: 'precio_final',
           title: 'Precio final',
-          render: d => d ? 'S/ ' + parseFloat(d).toFixed(2) : ''
+          render: d => d ? 'S/ ' + parseFloat(d).toFixed(2) : 'S/ 0.00'
         },
         {
           data: 'estado_lote',
@@ -106,7 +115,7 @@ $(function () {
         {
           data: 'cliente_nombre',
           title: 'Cliente',
-          render: (d, type, row) => d ? d : '-'
+          render: (d) => d ? d : '-'
         },
         {
           data: null,
@@ -115,14 +124,26 @@ $(function () {
           render: (data, type, row) => {
             return `
               <div class="btn-group btn-group-sm" role="group">
-                <button class="btn btn-outline-primary btn-edit-lote" data-id="${row.id}">Editar</button>
-                <button class="btn btn-outline-success btn-estado-lote" data-id="${row.id}">Estado</button>
-                <button class="btn btn-outline-danger btn-del-lote" data-id="${row.id}">Eliminar</button>
+                <button type="button" class="btn btn-outline-primary btn-edit-lote" data-id="${row.id}">
+                  Editar
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-estado-lote" data-id="${row.id}">
+                  Estado
+                </button>
+                <button type="button" class="btn btn-outline-warning btn-lote-factores" data-id="${row.id}">
+                  Factores
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-del-lote" data-id="${row.id}">
+                  Eliminar
+                </button>
               </div>
             `;
           }
         }
-      ]
+      ],
+      language: {
+        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/es-ES.json'
+      }
     });
 
     // Eventos de acciones
@@ -140,6 +161,12 @@ $(function () {
       const id = $(this).data('id');
       cambiarEstadoSwal(id);
     });
+
+    $tabla.on('click', '.btn-lote-factores', function () {
+      const rowData = dt.row($(this).closest('tr')).data();
+      if (!rowData) return;
+      abrirModalFactoresLote(rowData);
+    });
   }
 
   function recargarTabla() {
@@ -149,7 +176,6 @@ $(function () {
   // -------------------------------------------------
   // Modal Lote (Admin)
   // -------------------------------------------------
-
   function limpiarFormLote() {
     $formLote[0].reset();
     $formLote.find('[name="id"]').val('');
@@ -158,7 +184,6 @@ $(function () {
   function abrirModalLote(id) {
     limpiarFormLote();
 
-    // combos dentro del modal
     const $selProyecto = $formLote.find('[name="id_proyecto"]');
     const $selEtapa    = $formLote.find('[name="id_etapa"]');
     const $selManzana  = $formLote.find('[name="id_manzana"]');
@@ -168,7 +193,9 @@ $(function () {
     $selProyecto.off('change').on('change', function () {
       const idP = $(this).val();
       loadEtapas($selEtapa, idP, 'Seleccione etapa');
-      $selManzana.empty().append($('<option>', { value: '' }).text('Seleccione manzana')).trigger('change');
+      $selManzana.empty()
+        .append($('<option>', { value: '' }).text('Seleccione manzana'))
+        .trigger('change');
     });
 
     $selEtapa.off('change').on('change', function () {
@@ -200,16 +227,20 @@ $(function () {
           $formLote.find('[name="estado_comercial"]').val(data.estado_comercial);
           $formLote.find('[name="estado_lote"]').val(data.estado_lote);
 
-          // cargar combos respetando selección
+          // combos con selección actual
           loadProyectos($selProyecto, 'Seleccione proyecto');
           setTimeout(() => {
             $selProyecto.val(data.id_proyecto).trigger('change');
+
             setTimeout(() => {
               loadEtapas($selEtapa, data.id_proyecto, 'Seleccione etapa');
+
               setTimeout(() => {
                 $selEtapa.val(data.id_etapa).trigger('change');
+
                 setTimeout(() => {
                   loadManzanas($selManzana, data.id_etapa, 'Seleccione manzana');
+
                   setTimeout(() => {
                     $selManzana.val(data.id_manzana).trigger('change');
                   }, 200);
@@ -229,7 +260,6 @@ $(function () {
 
   $formLote.on('submit', function (e) {
     e.preventDefault();
-
     const formData = $formLote.serialize();
 
     ajaxJSON(
@@ -251,7 +281,6 @@ $(function () {
   // -------------------------------------------------
   // Eliminar Lote
   // -------------------------------------------------
-
   function eliminarLote(id) {
     Swal.fire({
       title: '¿Eliminar lote?',
@@ -282,9 +311,7 @@ $(function () {
   // -------------------------------------------------
   // Cambio de estado (Admin) usando SweetAlert
   // -------------------------------------------------
-
   function cambiarEstadoSwal(idLote) {
-    // Primero obtenemos detalle del lote para saber estado actual
     ajaxJSON(
       'index.php?c=lotes&a=get',
       'GET',
@@ -296,8 +323,6 @@ $(function () {
         }
 
         const estadoActual = lote.estado_lote || 'DISPONIBLE';
-
-        // Opciones de estado para Admin (todas)
         const opciones = [
           'DISPONIBLE',
           'RESERVADO',
@@ -307,15 +332,14 @@ $(function () {
         ];
 
         let html = `
-          <div class="mb-3 text-start">
-            <label class="form-label">Estado actual</label>
+          <div class="mb-2">
+            <div class="mb-1"><strong>Estado actual</strong></div>
             <div>${estadoBadge(estadoActual)}</div>
           </div>
-          <div class="mb-3 text-start">
+          <div class="mb-2">
             <label class="form-label">Nuevo estado</label>
-            <select id="swalEstadoNuevo" class="form-select">
-              <option value="">Seleccione estado</option>
-        `;
+            <select id="swalEstadoNuevo" class="form-select form-select-sm">
+              <option value="">Seleccione estado</option>`;
 
         opciones.forEach(op => {
           html += `<option value="${op}">${op}</option>`;
@@ -324,13 +348,13 @@ $(function () {
         html += `
             </select>
           </div>
-          <div class="mb-3 text-start">
+          <div class="mb-2">
             <label class="form-label">Cliente (obligatorio si el estado es distinto de DISPONIBLE)</label>
-            <select id="swalCliente" class="form-select"></select>
+            <select id="swalCliente" class="form-select form-select-sm"></select>
           </div>
-          <div class="mb-3 text-start">
+          <div class="mb-2">
             <label class="form-label">Motivo / Nota</label>
-            <textarea id="swalMotivo" class="form-control" rows="2" placeholder="Opcional, pero recomendable"></textarea>
+            <textarea id="swalMotivo" class="form-control form-control-sm" rows="2"></textarea>
           </div>
         `;
 
@@ -344,9 +368,8 @@ $(function () {
           cancelButtonText: 'Cancelar',
           didOpen: () => {
             const $cli = $('#swalCliente');
-            loadClientesSel($cli, 'Seleccione cliente');
+            loadClientes($cli, 'Seleccione cliente');
 
-            // Si ya tiene cliente, lo dejamos seleccionado visualmente (si coincide ID)
             if (lote.id_cliente) {
               setTimeout(() => {
                 $cli.val(lote.id_cliente).trigger('change');
@@ -374,7 +397,7 @@ $(function () {
           if (!result.isConfirmed || !result.value) return;
 
           const payload = {
-            id_lote:      idLote,
+            id_lote:     idLote,
             estado_nuevo: result.value.estadoNuevo,
             id_cliente:   result.value.idCliente || '',
             motivo:       result.value.motivo
@@ -399,15 +422,206 @@ $(function () {
   }
 
   // -------------------------------------------------
+  // FACTORES POR LOTE (Admin)
+  // -------------------------------------------------
+  function recalcularPreviewFactores() {
+    const precioBase = parseFloat($('#fact_precio_base').val()) || 0;
+    const factorMin  = parseFloat($('#fact_factor_min').val());
+    const factorMax  = parseFloat($('#fact_factor_max').val());
+
+    let total = 0;
+    $modalFactores.find('.chk-factor-lote:checked').each(function () {
+      const v = parseFloat($(this).data('valor-pct'));
+      if (!isNaN(v)) total += v;
+    });
+
+    const precioFinal = precioBase ? precioBase * (1 + total / 100) : 0;
+
+    $lblFactorTotal.text(total.toFixed(2) + '%');
+    $lblPrecioBase.text(
+      precioBase ? 'S/ ' + precioBase.toFixed(2) : 'S/ 0.00'
+    );
+    $lblPrecioFinal.text(
+      precioFinal ? 'S/ ' + precioFinal.toFixed(2) : 'S/ 0.00'
+    );
+
+    let cls = 'badge bg-secondary';
+    if (!isNaN(total) && !isNaN(factorMin) && !isNaN(factorMax)) {
+      if (total < factorMin || total > factorMax) {
+        cls = 'badge bg-danger';
+      } else {
+        cls = 'badge bg-success';
+      }
+    }
+    $lblFactorTotal.attr('class', cls);
+  }
+
+  function abrirModalFactoresLote(row) {
+    if (!$modalFactores.length) {
+      Swal.fire('Info', 'No se encontró el modal de factores del lote.', 'info');
+      return;
+    }
+
+    const idLote     = row.id;
+    const idProyecto = row.id_proyecto;
+    const precioBase = row.precio_base ? parseFloat(row.precio_base) : 0;
+
+    $('#fact_id_lote').val(idLote);
+    $('#fact_id_proyecto').val(idProyecto || '');
+    $('#fact_precio_base').val(precioBase.toFixed(2));
+
+    $lblLoteTituloFact.text(
+      `Factores del lote ${row.numero} – ${row.proyecto} / ${row.etapa} / ${row.manzana}`
+    );
+
+    $tblFactoresBody.empty().append(`
+      <tr>
+        <td colspan="4" class="text-muted text-center small">
+          Cargando factores...
+        </td>
+      </tr>
+    `);
+
+    // reset resumen
+    $lblFactorTotal.text('0.00%').attr('class', 'badge bg-secondary');
+    $lblPrecioBase.text(
+      precioBase ? 'S/ ' + precioBase.toFixed(2) : 'S/ 0.00'
+    );
+    $lblPrecioFinal.text('S/ 0.00');
+    $lblFactorRango.text('—');
+
+    const reqProyecto  = $.getJSON('index.php?c=proyectos&a=get', { id: idProyecto });
+    const reqFactores  = $.getJSON('index.php?c=lotes&a=factores_list', { id_proyecto: idProyecto });
+    const reqAplicados = $.getJSON('index.php?c=lotes&a=lote_factores_get', { id_lote: idLote });
+
+    $.when(reqProyecto, reqFactores, reqAplicados)
+      .done(function (rProy, rFact, rApl) {
+        const proy      = rProy[0] || {};
+        const factores  = Array.isArray(rFact[0]) ? rFact[0] : [];
+        const aplicados = Array.isArray(rApl[0]) ? rApl[0] : [];
+
+        const appliedIds = aplicados.map(x => parseInt(x.id_factor));
+
+        const factorMin = proy.factor_min_pct !== undefined && proy.factor_min_pct !== null
+          ? parseFloat(proy.factor_min_pct)
+          : -40;
+        const factorMax = proy.factor_max_pct !== undefined && proy.factor_max_pct !== null
+          ? parseFloat(proy.factor_max_pct)
+          : 50;
+
+        $('#fact_factor_min').val(factorMin);
+        $('#fact_factor_max').val(factorMax);
+        $lblFactorRango.text(
+          `${factorMin.toFixed(2)}% a ${factorMax.toFixed(2)}%`
+        );
+
+        $tblFactoresBody.empty();
+
+        if (!factores.length) {
+          $tblFactoresBody.append(`
+            <tr>
+              <td colspan="4" class="text-muted text-center small">
+                No hay factores configurados para este proyecto.
+              </td>
+            </tr>
+          `);
+        } else {
+          factores.forEach(f => {
+            const idFactor = parseInt(f.id);
+            const checked  = appliedIds.includes(idFactor);
+            const valorPct = f.valor_pct ? parseFloat(f.valor_pct) : 0;
+
+            const cat     = f.cat_factor || '';
+            const nombre  = f.nombre || '';
+            const codigo  = f.codigo ? ` (${f.codigo})` : '';
+            const desc    = f.descripcion || '';
+
+            const rowHtml = `
+              <tr>
+                <td class="text-center">
+                  <input type="checkbox"
+                         class="form-check-input chk-factor-lote"
+                         value="${idFactor}"
+                         data-valor-pct="${valorPct}"
+                         ${checked ? 'checked' : ''}>
+                </td>
+                <td>${cat}</td>
+                <td>
+                  ${nombre}${codigo}
+                  ${desc ? `<br><small class="text-muted">${desc}</small>` : ''}
+                </td>
+                <td class="text-end">${valorPct.toFixed(2)}%</td>
+              </tr>
+            `;
+            $tblFactoresBody.append(rowHtml);
+          });
+
+          // cálculo inicial
+          recalcularPreviewFactores();
+        }
+
+        $modalFactores.modal('show');
+      })
+      .fail(function () {
+        $tblFactoresBody.empty().append(`
+          <tr>
+            <td colspan="4" class="text-danger text-center small">
+              Error cargando factores del lote.
+            </td>
+          </tr>
+        `);
+        Swal.fire('Error', 'No se pudieron cargar los factores del lote.', 'error');
+      });
+  }
+
+  if ($modalFactores.length && $formFactores.length) {
+
+    $modalFactores.on('change', '.chk-factor-lote', function () {
+      recalcularPreviewFactores();
+    });
+
+    $formFactores.on('submit', function (e) {
+      e.preventDefault();
+
+      const idLote = $('#fact_id_lote').val();
+      if (!idLote) {
+        Swal.fire('Atención', 'Lote inválido', 'warning');
+        return;
+      }
+
+      const factores = [];
+      $modalFactores.find('.chk-factor-lote:checked').each(function () {
+        factores.push($(this).val());
+      });
+
+      ajaxJSON(
+        'index.php?c=lotes&a=lote_factores_save',
+        'POST',
+        { id_lote: idLote, factores: factores },
+        function (resp) {
+          if (resp.status) {
+            Swal.fire('OK', resp.msg || 'Factores del lote actualizados', 'success');
+            $modalFactores.modal('hide');
+            recargarTabla();
+          } else {
+            Swal.fire('Atención', resp.msg || 'No se pudieron actualizar los factores', 'warning');
+          }
+        }
+      );
+    });
+  }
+
+  // -------------------------------------------------
   // Creación MASIVA de lotes
   // -------------------------------------------------
-
   $('#btnAbrirMasivo').on('click', function () {
     if ($modalMasivo.length === 0) {
       Swal.fire('Info', 'No se encontró el modal de creación masiva.', 'info');
       return;
     }
+
     $formMasivo[0].reset();
+
     const $selProyecto = $formMasivo.find('[name="id_proyecto"]');
     const $selEtapa    = $formMasivo.find('[name="id_etapa"]');
     const $selManzana  = $formMasivo.find('[name="id_manzana"]');
@@ -417,7 +631,9 @@ $(function () {
     $selProyecto.off('change').on('change', function () {
       const idP = $(this).val();
       loadEtapas($selEtapa, idP, 'Seleccione etapa');
-      $selManzana.empty().append($('<option>', { value: '' }).text('Seleccione manzana')).trigger('change');
+      $selManzana.empty()
+        .append($('<option>', { value: '' }).text('Seleccione manzana'))
+        .trigger('change');
     });
 
     $selEtapa.off('change').on('change', function () {
@@ -451,8 +667,6 @@ $(function () {
   // -------------------------------------------------
   // INIT
   // -------------------------------------------------
-
   initCombosFiltros();
   initDataTable();
-
 });

@@ -242,3 +242,91 @@
     </div>
   </div>
 </div>
+
+
+<?php // app/Views/lotes/modals/factores_lote.php (puedes separarlo si quieres) ?>
+<div class="modal fade" id="modalLoteFactores" tabindex="-1" aria-labelledby="modalLoteFactoresLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="formLoteFactores">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalLoteFactoresLabel">
+            <span id="lblLoteTituloFactores">Factores del lote</span>
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body">
+
+          <!-- Hidden para lógica -->
+          <input type="hidden" id="fact_id_lote" name="id_lote">
+          <input type="hidden" id="fact_id_proyecto">
+          <input type="hidden" id="fact_factor_min">
+          <input type="hidden" id="fact_factor_max">
+          <input type="hidden" id="fact_precio_base">
+
+          <div class="alert alert-info py-2 mb-3">
+            <div><strong>Rango permitido de factores del proyecto:</strong>
+              <span id="lblFactorRango">—</span>
+            </div>
+            <div class="mt-1">
+              <strong>Factor total aplicado al lote:</strong>
+              <span id="lblFactorTotal" class="badge bg-secondary">0.00%</span>
+            </div>
+          </div>
+
+          <div class="table-responsive mb-3">
+            <table class="table table-sm table-striped align-middle" id="tblFactoresLote">
+              <thead>
+                <tr>
+                  <th style="width:40px;" class="text-center">✔</th>
+                  <th>Categoría</th>
+                  <th>Nombre (código)</th>
+                  <th class="text-end">Valor (%)</th>
+                </tr>
+              </thead>
+              <tbody id="tblFactoresLoteBody">
+                <tr>
+                  <td colspan="4" class="text-muted text-center small">
+                    Selecciona un lote para ver sus factores.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 mb-2">
+              <div class="border rounded p-2 small">
+                <div class="text-muted">Precio base</div>
+                <div id="lblPrecioBase" class="fw-bold">S/ 0.00</div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-2">
+              <div class="border rounded p-2 small">
+                <div class="text-muted">Precio final (preview)</div>
+                <div id="lblPrecioFinal" class="fw-bold">S/ 0.00</div>
+              </div>
+            </div>
+            <div class="col-md-4 mb-2">
+              <div class="border rounded p-2 small">
+                <div class="text-muted">Nota</div>
+                <div class="small text-muted">
+                  El cálculo final se consolida en el backend al guardar.
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="submit" class="btn btn-primary">
+            Guardar factores del lote
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
