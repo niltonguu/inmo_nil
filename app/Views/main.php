@@ -10,7 +10,7 @@ if (!isset($_SESSION['user'])) {
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>PUBLICIDAD APP</title>
+  <title>KASSA APP</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
 
   <!-- CSS globales -->
@@ -36,7 +36,7 @@ if (!isset($_SESSION['user'])) {
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
   <div class="container-fluid">
-    <a class="navbar-brand" href="index.php?c=dashboard&a=index">PUBLICIDAD</a>
+    <a class="navbar-brand" href="index.php?c=dashboard&a=index">HOME</a>
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
             data-bs-target="#navbarNav">
@@ -51,9 +51,12 @@ if (!isset($_SESSION['user'])) {
         <li class="nav-item">
           <a class="nav-link" href="index.php?c=personas&a=index">Personas</a>
         </li>
+      <?php if (!empty($_SESSION['user']) && ($_SESSION['user']['role'] ?? '') === 'admin'): ?>
         <li class="nav-item">
           <a class="nav-link" href="index.php?c=proyectos&a=index">Proyectos</a>
         </li>
+      <?php endif; ?>
+
         <li class="nav-item">
           <a class="nav-link" href="index.php?c=lotes&a=index">Lotes</a>
         </li>
@@ -113,6 +116,10 @@ if (isset($content_view) && file_exists($content_view)) {
   };
 </script>
 
+<?php
+$v = time();
+?>
+
 <!-- JS de módulos -->
 <script src="public/assets/js/app.js"></script>
 <script src="public/assets/js/persona.js"></script>
@@ -122,10 +129,10 @@ if (isset($content_view) && file_exists($content_view)) {
 
 <script src="public/assets/js/lotes_global.js"></script>
 <?php if ($view === 'lotes/index_admin'): ?>
-  <script src="public/assets/js/lotes_admin.js"></script>
+  <script src="public/assets/js/lotes_admin.js?v=<?=$v;?>"></script>
 <?php elseif ($view === 'lotes/index_usuario'): ?>
   <script src="public/assets/js/lotes_usuario.js"></script>
 <?php endif; ?>
-
+<script src="public/assets/js/lotes_documentos.js?v=1"></script>
 </body>
 </html>

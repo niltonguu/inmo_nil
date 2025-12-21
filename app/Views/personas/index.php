@@ -15,7 +15,7 @@
     <button class="btn btn-success btn-sm filter" data-etiqueta="VENDIDO">Vendido</button>
     <button class="btn btn-danger btn-sm filter" data-etiqueta="PROBLEMAS">Problemas</button>
 </div>
-
+<div class="table-responsive">
   <table id="tblPersonas" class="table table-striped table-hover table-sm align-middle" style="width:100%">
     <thead class="table-light">
       <tr>
@@ -32,6 +32,7 @@
       </tr>
     </thead>
   </table>
+</div>
 </div>
 
 <?php require __DIR__ . '/modals/persona.php'; ?>

@@ -211,6 +211,8 @@ if (window.proyectosModuleInitialized) {
      * =======================*/
 
     const tableProyectos = $('#tblProyectos').DataTable({
+      scrollX: true,
+      autoWidth: false,
       ajax: 'index.php?c=proyectos&a=list',
       columns: [
         { data: 'id', width: '5%' },

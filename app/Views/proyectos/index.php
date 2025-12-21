@@ -12,6 +12,7 @@
   <!-- Tabla de proyectos -->
   <div class="card mb-3">
     <div class="card-body">
+      <div class="table-responsive">
       <table id="tblProyectos" class="table table-sm table-striped table-hover align-middle mb-0">
         <thead>
           <tr>
@@ -27,6 +28,7 @@
         </thead>
         <tbody></tbody>
       </table>
+    </div>
     </div>
   </div>
 

@@ -1,57 +1,78 @@
-<?php // app/Views/lotes/modals/vertices.php ?>
-<div class="modal fade" id="modalVerticesLote" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <form id="formVerticesLote"
-          class="modal-content"
-          method="post"
-          action="index.php?c=lotes&a=vertices_save"
-          onsubmit="return false;">
+<?php
+// app/Views/lotes/modals/vertices.php
+?>
+<div class="modal fade" id="modalVerticesLote" tabindex="-1" aria-labelledby="modalVerticesLoteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
 
       <div class="modal-header">
-        <h5 class="modal-title">Editar vértices del lote</h5>
+        <h5 class="modal-title" id="modalVerticesLoteLabel">
+          Vértices del lote
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
-      <div class="modal-body">
-        <input type="hidden" name="id_lote" id="vertices_id_lote">
+      <form id="formVerticesLote">
 
-        <p class="small text-muted">
-          Los vértices deben ingresarse en <strong>sentido horario (clockwise)</strong>.
-          El orden se respeta según la columna <strong>#</strong>.
-        </p>
+        <input type="hidden" name="id_lote" id="vert_id_lote">
 
-        <div class="table-responsive mb-2">
-          <table id="tblVerticesEditor" class="table table-sm table-bordered align-middle">
-            <thead class="table-light">
-              <tr>
-                <th style="width:60px;">#</th>
-                <th>Latitud</th>
-                <th>Longitud</th>
-                <th style="width:80px;">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- filas dinámicas: inputs orden/lat/lng -->
-            </tbody>
-          </table>
+        <div class="modal-body">
+
+          <div class="alert alert-info small">
+            <strong>Instrucciones:</strong>
+            ingresa los vértices en <strong>sentido horario</strong>,
+            con al menos <strong>3 puntos válidos</strong>.
+          </div>
+
+          <div class="row mb-2">
+            <div class="col">
+              <span class="fw-semibold">Lote:</span>
+              <span id="vert_lbl_lote"></span>
+            </div>
+          </div>
+
+          <div class="table-responsive border rounded">
+            <table class="table table-sm mb-0" id="tblVerticesLote">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 70px;">#</th>
+                  <th style="width: 160px;">Latitud</th>
+                  <th style="width: 160px;">Longitud</th>
+                  <th style="width: 80px;"></th>
+                </tr>
+              </thead>
+              <tbody id="tblVerticesBody">
+                <!-- filas dinámicas -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="d-flex justify-content-between mt-2">
+            <div>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAddVerticeRow">
+                + Agregar vértice
+              </button>
+            </div>
+            <div>
+              <button type="button" class="btn btn-outline-danger btn-sm" id="btnClearVertices">
+                Eliminar todos
+              </button>
+            </div>
+          </div>
+
         </div>
 
-        <div class="d-flex justify-content-between align-items-center">
-          <button type="button" id="btnAddVerticeFila" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-plus-lg"></i> Agregar vértice
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cerrar
           </button>
-          <small class="text-muted">
-            Define al menos 3 vértices para formar el polígono.
-          </small>
+          <button type="submit" class="btn btn-primary">
+            Guardar vértices
+          </button>
         </div>
 
-      </div>
+      </form>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" id="btnSaveVerticesLote" class="btn btn-primary btn-sm">Guardar vértices</button>
-      </div>
-
-    </form>
+    </div>
   </div>
 </div>

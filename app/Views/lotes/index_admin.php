@@ -243,8 +243,7 @@
   </div>
 </div>
 
-
-<?php // app/Views/lotes/modals/factores_lote.php (puedes separarlo si quieres) ?>
+<?php // app/Views/lotes/modals/factores_lote.php ?>
 <div class="modal fade" id="modalLoteFactores" tabindex="-1" aria-labelledby="modalLoteFactoresLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
@@ -330,3 +329,216 @@
     </div>
   </div>
 </div>
+
+<!-- ==========================
+     MODAL: Vértices del lote
+     ========================== -->
+<div class="modal fade" id="modalVerticesLote" tabindex="-1" aria-labelledby="modalVerticesLoteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalVerticesLoteLabel">
+          Vértices del lote
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <form id="formVerticesLote">
+
+        <input type="hidden" name="id_lote" id="vert_id_lote">
+
+        <div class="modal-body">
+
+          <div class="alert alert-info small">
+            <strong>Instrucciones:</strong>
+            ingresa los vértices en <strong>sentido horario</strong>,
+            con al menos <strong>3 puntos válidos</strong>.
+          </div>
+
+          <div class="row mb-2">
+            <div class="col">
+              <span class="fw-semibold">Lote:</span>
+              <span id="vert_lbl_lote"></span>
+            </div>
+          </div>
+
+          <div class="table-responsive border rounded">
+            <table class="table table-sm mb-0" id="tblVerticesLote">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 70px;">#</th>
+                  <th style="width: 160px;">Latitud</th>
+                  <th style="width: 160px;">Longitud</th>
+                  <th style="width: 80px;"></th>
+                </tr>
+              </thead>
+              <tbody id="tblVerticesBody">
+                <!-- filas dinámicas -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="d-flex justify-content-between mt-2">
+            <div>
+              <button type="button" class="btn btn-outline-secondary btn-sm" id="btnAddVerticeRow">
+                + Agregar vértice
+              </button>
+            </div>
+            <div>
+              <button type="button" class="btn btn-outline-danger btn-sm" id="btnClearVertices">
+                Eliminar todos
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cerrar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Guardar vértices
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+<!-- ==========================
+     MODAL: Historial del lote
+     ========================== -->
+<div class="modal fade" id="modalHistorialLote" tabindex="-1" aria-labelledby="modalHistorialLoteLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalHistorialLoteLabel">
+          Historial del lote
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="mb-2">
+          <span class="fw-semibold">Lote:</span>
+          <span id="hist_lbl_lote" class="ms-1"></span>
+        </div>
+
+        <div class="table-responsive border rounded">
+          <table class="table table-sm mb-0" id="tblHistorialLote">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 150px;">Fecha / hora</th>
+                <th style="width: 140px;">Usuario</th>
+                <th style="width: 160px;">Estado</th>
+                <th>Cliente</th>
+                <th style="width: 220px;">Motivo</th>
+              </tr>
+            </thead>
+            <tbody id="tblHistorialBody">
+              <tr>
+                <td colspan="5" class="text-muted text-center small">
+                  Selecciona un lote para ver su historial.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<?php // MODAL: Documentos del lote ?>
+<div class="modal fade" id="modalLoteDocumentos" tabindex="-1" aria-labelledby="modalLoteDocumentosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <form id="formLoteDocumento">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalLoteDocumentosLabel">
+            Documentos del lote
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body">
+
+          <!-- Alerta de felicitación -->
+          <div id="alert-reserva"></div>
+
+          <!-- Hidden: ID de lote -->
+          <input type="hidden" name="id_lote" id="doc_id_lote">
+
+          <!-- Info básica del lote y cliente -->
+          <div class="border rounded p-2 mb-3 bg-light small">
+            <div>
+              <strong>Lote:</strong>
+              <span id="doc_lbl_lote">—</span>
+            </div>
+            <div>
+              <strong>Proyecto:</strong>
+              <span id="doc_lbl_proyecto">—</span>
+            </div>
+            <div>
+              <strong>Cliente:</strong>
+              <span id="doc_lbl_cliente">—</span>
+            </div>
+            <div>
+              <strong>Estado del lote:</strong>
+              <span id="doc_lbl_estado_lote">—</span>
+            </div>
+          </div>
+
+          <!-- Tipo de documento -->
+          <div class="mb-3">
+            <label for="doc_tipo_documento" class="form-label">Tipo de documento a generar</label>
+            <select class="form-select form-select-sm" name="tipo_documento" id="doc_tipo_documento" required>
+              <option value="">-- Seleccione --</option>
+              <option value="RESERVA">Contrato de RESERVA</option>
+              <option value="SEPARACION">Contrato de SEPARACIÓN</option>
+              <option value="COMPRAVENTA">Contrato de COMPRAVENTA</option>
+              <option value="ANULACION">Documento de ANULACIÓN</option>
+            </select>
+            <div class="form-text">
+              Las opciones se podrán filtrar según el estado actual del lote en una siguiente iteración.
+            </div>
+          </div>
+
+          <!-- Contenedor dinámico de campos según el tipo de documento -->
+          <div id="doc_campos_container">
+            <div class="alert alert-info small mb-0">
+              Selecciona un tipo de documento para mostrar los campos necesarios.
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">
+            Cerrar
+          </button>
+          <button type="submit" class="btn btn-sm btn-primary">
+            Generar documento
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+<?php //require __DIR__ . '/modals/documentos_lote.php'; ?>
+<?php require __DIR__ . '/modals/documentos.php'; ?>
+

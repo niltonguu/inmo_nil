@@ -21,6 +21,9 @@ class LotesModel
         $sql = "
             SELECT 
                 l.id,
+                l.id_proyecto,
+                l.id_etapa,
+                l.id_manzana,
                 p.nombre     AS proyecto,
                 e.nombre     AS etapa,
                 m.codigo     AS manzana,
@@ -78,6 +81,9 @@ class LotesModel
         $sql = "
             SELECT 
                 l.id,
+                l.id_proyecto,
+                l.id_etapa,
+                l.id_manzana,
                 p.nombre     AS proyecto,
                 e.nombre     AS etapa,
                 m.codigo     AS manzana,

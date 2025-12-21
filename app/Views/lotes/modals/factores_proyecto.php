@@ -1,6 +1,6 @@
 <?php // app/Views/lotes/modals/factores_proyecto.php ?>
 <div class="modal fade" id="modalFactoresProyecto" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
     <div class="modal-content">
 
       <div class="modal-header">

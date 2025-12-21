@@ -405,20 +405,37 @@ class LotesController extends Controller
         ]);
     }
 
+
+
     // =========================================================
     // HISTORIAL
     // =========================================================
 
-    public function historial_list()
-    {
-        $id_lote = (int)($_GET['id_lote'] ?? 0);
-        if ($id_lote <= 0) {
-            $this->jsonResponse([]);
-        }
+public function historial_list()
+{
+    // Solo lectura, se espera GET
+    $idLote = isset($_GET['id_lote']) ? (int)$_GET['id_lote'] : 0;
 
-        $rows = $this->model->getHistorialByLote($id_lote, $this->currentUserRole());
-        $this->jsonResponse($rows);
+    if ($idLote <= 0) {
+        return $this->jsonResponse([
+            'status' => false,
+            'msg'    => 'ID de lote inválido',
+            'data'   => []
+        ]);
     }
+
+    require_once __DIR__ . '/../Models/LotesModel.php';
+    $model = new LotesModel();
+
+    // Por ahora no filtramos por rol, esto es solo para ADMIN
+    $rows = $model->getHistorialByLote($idLote, 'ADMIN');
+
+    return $this->jsonResponse([
+        'status' => true,
+        'data'   => $rows
+    ]);
+}
+
 
     // =========================================================
     // CAMBIO DE ESTADO (ADMIN + VENDEDOR)
