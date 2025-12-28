@@ -133,6 +133,7 @@ $v = time();
 <?php elseif ($view === 'lotes/index_usuario'): ?>
   <script src="public/assets/js/lotes_usuario.js"></script>
 <?php endif; ?>
-<script src="public/assets/js/lotes_documentos.js?v=1"></script>
+<script src="public/assets/js/lotes_documentos.js?v=<?= time() ?>"></script>
+
 </body>
 </html>

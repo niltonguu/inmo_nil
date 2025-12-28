@@ -1,0 +1,167 @@
+CONTRATO PRIVADO DE COMPRAVENTA DE LOTE
+
+En la ciudad de ________________________________, a los {{fecha_actual}}, se celebra el presente CONTRATO PRIVADO DE COMPRAVENTA DE LOTE, que suscriben las siguientes partes:
+
+1. {{proyecto_empresa_razon_social}}, identificada con RUC Nº {{proyecto_empresa_ruc}}, con domicilio en {{proyecto_direccion}}, debidamente representada por {{proyecto_representante_nombre}}, identificado(a) con {{proyecto_representante_documento}}, a quien en adelante se denominará LA EMPRESA.
+
+2. La empresa {{cliente_razon_social}}, identificada con RUC Nº {{cliente_ruc}}, con domicilio en {{cliente_direccion}}, debidamente representada por {{cliente_representante_nombre}}, identificado(a) con {{cliente_representante_documento}}, según consta en la Partida Registral Nº {{cliente_partida_registral}}, a quien en adelante se denominará LA COMPRADORA.
+
+{{copropietarios_bloque}}
+
+-------------------------------------------------------------------
+CLÁUSULA PRIMERA: OBJETO DEL CONTRATO
+-------------------------------------------------------------------
+LA EMPRESA vende a LA COMPRADORA, y esta compra, el lote descrito en la cláusula siguiente, con todas sus características, medidas y derechos inherentes.
+
+-------------------------------------------------------------------
+CLÁUSULA SEGUNDA: IDENTIFICACIÓN DEL LOTE
+-------------------------------------------------------------------
+El lote materia del presente contrato corresponde al proyecto {{proyecto_nombre}} y se identifica como sigue:
+
+- Proyecto: {{proyecto_nombre}}
+- Lote: {{lote_codigo}}
+- Manzana: {{lote_manzana}}
+- Etapa: {{lote_etapa}}
+- Área del lote: {{lote_area_m2}} m²
+- Precio por m²: {{lote_precio_m2}}
+- Precio total del lote: {{lote_precio_final}} ({{precio_total_letras}})
+
+Medidas perimétricas:
+
+- Frente: {{lote_frente_m}} m
+- Fondo: {{lote_fondo_m}} m
+- Lado izquierdo: {{lote_lado_izq_m}} m
+- Lado derecho: {{lote_lado_der_m}} m
+
+Linderos y vértices (resumen):
+{{lote_vertices_texto}}
+
+ANEXO TÉCNICO – VÉRTICES DEL LOTE (UTM)
+{{lote_vertices_tabla}}
+
+LA COMPRADORA declara haber verificado la ubicación y características del lote.
+
+-------------------------------------------------------------------
+CLÁUSULA TERCERA: PRECIO, PAGO INICIAL Y SALDO
+-------------------------------------------------------------------
+El precio total de compraventa asciende a:
+{{lote_precio_final}} ({{precio_total_letras}}).
+
+LA COMPRADORA realiza:
+
+1. **Pago inicial:**
+   - Monto: {{precio_inicial_pago}}
+   - Fecha: {{pago_fecha_inicial}}
+   - Medio de pago: {{pago_medio_inicial}}
+
+2. **Saldo:**
+   - Monto: {{precio_saldo}}
+   - Modalidad: {{compra_modalidad}} (CONTADO / CRÉDITO)
+
+Si es crédito:
+
+Plan de pagos:
+{{plan_cuotas}}
+
+Detalle (JSON estructurado):
+{{plan_cuotas_detalle}}
+
+-------------------------------------------------------------------
+CLÁUSULA CUARTA: FORMA DE PAGO
+-------------------------------------------------------------------
+Todos los pagos se realizarán a las cuentas oficiales de LA EMPRESA informadas mediante WhatsApp institucional o correo oficial.
+
+LA EMPRESA no reconocerá pagos efectuados en cuentas distintas.
+
+-------------------------------------------------------------------
+CLÁUSULA QUINTA: ENTREGA DEL LOTE
+-------------------------------------------------------------------
+LA EMPRESA entregará la posesión cuando:
+
+a) El precio total haya sido cancelado.  
+b) Se firme el acta de entrega de posesión.  
+
+Plazo máximo de entrega: {{plazo_entrega_dias}} días desde la cancelación total.
+
+-------------------------------------------------------------------
+CLÁUSULA SEXTA: CONDICIÓN RESOLUTORIA
+-------------------------------------------------------------------
+Si LA COMPRADORA incumple el pago de **{{cuotas_impagas_resolutorias}} cuotas consecutivas**, LA EMPRESA podrá resolver el contrato.
+
+En caso de resolución:
+
+1. LA EMPRESA retendrá el **30%** de lo pagado.  
+2. El saldo será devuelto en {{plazo_devolucion_dias}} días.  
+3. El lote quedará disponible nuevamente.
+
+La resolución se notificará vía WhatsApp oficial.
+
+-------------------------------------------------------------------
+CLÁUSULA SÉPTIMA: OBLIGACIONES DE LA EMPRESA
+-------------------------------------------------------------------
+LA EMPRESA se obliga a:
+
+a) Mantener firme la venta bajo este contrato.  
+b) Brindar información veraz.  
+c) Entregar el lote cuando corresponda.  
+
+-------------------------------------------------------------------
+CLÁUSULA OCTAVA: OBLIGACIONES DE LA COMPRADORA
+-------------------------------------------------------------------
+LA COMPRADORA se obliga a:
+
+a) Pagar el precio y sus cuotas.  
+b) Suscribir los documentos requeridos.  
+c) Mantener datos de contacto actualizados.  
+d) No ocupar el lote antes de la entrega.  
+
+-------------------------------------------------------------------
+CLÁUSULA NOVENA: SANEAMIENTO LEGAL
+-------------------------------------------------------------------
+LA EMPRESA garantiza:
+
+a) Derecho legítimo para transferir el lote.  
+b) Ausencia de cargas o gravámenes.  
+c) Aptitud del lote para transferencia contractual.  
+
+-------------------------------------------------------------------
+CLÁUSULA DÉCIMA: NOTIFICACIONES
+-------------------------------------------------------------------
+Canales oficiales:
+
+- WhatsApp de LA COMPRADORA: {{cliente_whatsapp}}
+- WhatsApp de LA EMPRESA: {{empresa_whatsapp}}
+- Correo de LA COMPRADORA: {{cliente_email}}
+- Correo de LA EMPRESA: {{empresa_email}}
+
+Se considera entrega válida cuando:
+
+- WhatsApp muestre doble check gris, o  
+- hayan pasado 24 horas desde el envío.  
+
+-------------------------------------------------------------------
+CLÁUSULA DÉCIMO PRIMERA: PROTECCIÓN DE DATOS
+-------------------------------------------------------------------
+LA COMPRADORA autoriza el tratamiento de datos según Ley 29733.
+
+-------------------------------------------------------------------
+CLÁUSULA DÉCIMO SEGUNDA: JURISDICCIÓN
+-------------------------------------------------------------------
+Las partes se someten a los juzgados de {{proyecto_distrito}}.
+
+-------------------------------------------------------------------
+CLÁUSULA DÉCIMO TERCERA: ACEPTACIÓN
+-------------------------------------------------------------------
+Leído el presente contrato, ambas partes lo suscriben:
+
+----------------------------------------------
+LA EMPRESA  
+{{proyecto_empresa_razon_social}}  
+Representante: {{proyecto_representante_nombre}}  
+{{proyecto_representante_documento}}
+
+----------------------------------------------
+LA COMPRADORA  
+{{cliente_representante_nombre}}  
+Representante Legal de {{cliente_razon_social}}  
+{{cliente_representante_documento}}

@@ -1,7 +1,4 @@
 // public/assets/js/lotes_documentos.js
-// Módulo Documentos de Lotes (ADMIN) - versión estable y completa
-// Requiere: jQuery, Bootstrap 5, SweetAlert2 (opcional), Toastr (opcional), DataTables (opcional)
-
 (function () {
   if (window.lotesDocumentosInitialized) return;
   window.lotesDocumentosInitialized = true;
@@ -9,156 +6,165 @@
   console.log('[lotes_documentos] cargado ✅');
 
   $(function () {
-    // ----------------------------
-    // Referencias DOM (modal actual)
-    // ----------------------------
     const modalEl = document.getElementById('modalLoteDocumentos');
     if (!modalEl) {
-      console.warn('[lotes_documentos] ❌ No existe #modalLoteDocumentos. Revisa include de app/Views/lotes/modals/documentos.php');
+      console.warn('[lotes_documentos] ❌ No existe #modalLoteDocumentos. Asegúrate de incluir app/Views/lotes/modals/documentos_lotes.php');
       return;
     }
 
-    const modalDocumento = new bootstrap.Modal(modalEl, {
-      backdrop: true,
-      keyboard: true
-    });
+    const modalDocumento = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
 
-    const $form            = $('#formLoteDocumento');
-    const $idLote          = $('#doc_id_lote');
+    // ----------------------------
+    // DOM
+    // ----------------------------
+    const $form = $('#formLoteDocumento');
+    const $idLote = $('#doc_id_lote');
 
-    const $lblLote         = $('#doc_lbl_lote');
-    const $lblProyecto     = $('#doc_lbl_proyecto');
-    const $lblCliente      = $('#doc_lbl_cliente');
-    const $lblEstado       = $('#doc_lbl_estado'); // agregado en tu modal
+    const $lblLote = $('#doc_lbl_lote');
+    const $lblProyecto = $('#doc_lbl_proyecto');
+    const $lblCliente = $('#doc_lbl_cliente');
 
-    const $tipoDocumento   = $('#doc_tipo_documento');
-    const $titulo          = $('#doc_titulo');
-    const $plantilla       = $('#doc_plantilla');
+    // ✅ Soporta ambos IDs (tu modal tiene doc_lbl_estado_lote, tu JS antiguo usaba doc_lbl_estado)
+    const $lblEstado = $('#doc_lbl_estado_lote').length ? $('#doc_lbl_estado_lote') : $('#doc_lbl_estado');
+
+    // select principal (tipo_documento)
+    const $tipoDocumento = $('#doc_tipo_documento');
+
+    // ✅ NUEVO: tipo_persona (si no existe en el HTML lo creamos dinámicamente arriba del tipo_documento)
+    let $tipoPersona = $('#doc_tipo_persona');
+
+    // título y plantilla: en tu modal NO existen, pero tu controlador los espera → los aseguramos como inputs hidden
+    let $titulo = $('#doc_titulo');
+    let $plantilla = $('#doc_plantilla');
 
     const $camposContainer = $('#doc_campos_container');
-    const $docsBody        = $('#doc_docs_body');
+    const $docsBody = $('#doc_docs_body');
 
-    const $btnGenerar      = $('#btnGenerarDocumento'); // existe en tu modal
+    // ✅ Botón submit: tu HTML no tiene id btnGenerarDocumento → fallback robusto
+    const $btnGenerar = $('#btnGenerarDocumento').length ? $('#btnGenerarDocumento') : $form.find('button[type="submit"]').first();
 
-    // Panel “Documento generado”
     const $resultContainer = $('#doc_result_container');
-    const $resultView      = $('#doc_result_view');
-    const $resultHtml      = $('#doc_result_html');
-    const $resultPdf       = $('#doc_result_pdf');
+    const $resultView = $('#doc_result_view');
+    const $resultHtml = $('#doc_result_html');
+    const $resultPdf = $('#doc_result_pdf');
 
-    // Si no existe el tbody, nunca veremos la lista
-    if (!$docsBody.length) {
-      console.warn('[lotes_documentos] ❌ No existe #doc_docs_body dentro del modal. No hay dónde renderizar la lista.');
-    }
+    const $alertReserva = $('#alert-reserva');
 
     // ----------------------------
     // Helpers
     // ----------------------------
-    function esc(s) {
-      return String(s ?? '')
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
-    }
+    const esc = (s) => String(s ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
 
-    function toastOk(msg) {
+    const toastOk = (msg) => {
       if (window.toastr) toastr.success(msg || 'OK');
       else if (window.Swal) Swal.fire('OK', msg || 'OK', 'success');
       else alert(msg || 'OK');
-    }
+    };
 
-    function toastErr(msg) {
+    const toastErr = (msg) => {
       if (window.toastr) toastr.error(msg || 'Error');
       else if (window.Swal) Swal.fire('Error', msg || 'Error', 'error');
       else alert(msg || 'Error');
-    }
+    };
 
-    function setLoadingDocs(text) {
+    const setLoadingDocs = (text) => {
       if (!$docsBody.length) return;
       $docsBody.html(`
         <tr>
-          <td colspan="6" class="text-center text-muted small py-3">
-            ${esc(text || 'Cargando...')}
-          </td>
+          <td colspan="6" class="text-center text-muted small py-3">${esc(text || 'Cargando...')}</td>
         </tr>
       `);
-    }
+    };
 
-    function hideResultPanel() {
+    const hideResultPanel = () => {
       if ($resultContainer.length) $resultContainer.addClass('d-none');
       if ($resultView.length) $resultView.attr('href', '#');
       if ($resultHtml.length) $resultHtml.attr('href', '#');
       if ($resultPdf.length) $resultPdf.attr('href', '#');
-    }
+    };
 
-    function showResultPanel(docId) {
-      if (!$resultContainer.length) return;
-      if (!docId) return;
+    const showResultPanel = (docId) => {
+      if (!$resultContainer.length || !docId) return;
 
       const viewUrl = `index.php?c=documentos&a=view&id=${encodeURIComponent(docId)}`;
       const htmlUrl = `index.php?c=documentos&a=download&id=${encodeURIComponent(docId)}&format=html`;
-      const pdfUrl  = `index.php?c=documentos&a=download&id=${encodeURIComponent(docId)}&format=pdf`;
+      const pdfUrl = `index.php?c=documentos&a=download&id=${encodeURIComponent(docId)}&format=pdf`;
 
-      if ($resultView.length) $resultView.attr('href', viewUrl);
-      if ($resultHtml.length) $resultHtml.attr('href', htmlUrl);
-      if ($resultPdf.length) $resultPdf.attr('href', pdfUrl);
+      $resultView.attr('href', viewUrl);
+      $resultHtml.attr('href', htmlUrl);
+      $resultPdf.attr('href', pdfUrl);
 
       $resultContainer.removeClass('d-none');
 
-      // Scroll suave para que el usuario lo vea
-      try {
-        $resultContainer[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } catch (e) { /* no-op */ }
-    }
+      try { $resultContainer[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+    };
 
-    function limpiarModal() {
-      if ($form.length) $form[0].reset();
-
-      $idLote.val('');
-
-      if ($lblLote.length)     $lblLote.text('—');
-      if ($lblProyecto.length) $lblProyecto.text('—');
-      if ($lblCliente.length)  $lblCliente.text('—');
-      if ($lblEstado.length)   $lblEstado.text('—');
-
-      if ($camposContainer.length) {
-        $camposContainer.html(`
-          <div class="alert alert-info small mb-0">
-            Selecciona un tipo de documento para mostrar los campos necesarios.
-          </div>
-        `);
-      }
-
-      setLoadingDocs('Selecciona un lote para ver sus documentos.');
-      hideResultPanel();
-    }
-
-    // Normaliza respuesta: [] o {status,data:[]} o {rows:[]}
-    function normalizeRows(resp) {
-      if (Array.isArray(resp)) return resp;
-      if (resp && typeof resp === 'object') {
-        if (Array.isArray(resp.data)) return resp.data;
-        if (Array.isArray(resp.rows)) return resp.rows;
-        if (Array.isArray(resp.items)) return resp.items;
-      }
-      return [];
-    }
-
-    // Extrae id documento: {id} o {data:{id}}
-    function extractDocId(resp) {
+    const extractDocId = (resp) => {
       if (!resp) return 0;
       if (resp.id) return parseInt(resp.id, 10) || 0;
       if (resp.data && resp.data.id) return parseInt(resp.data.id, 10) || 0;
       if (resp.documento_id) return parseInt(resp.documento_id, 10) || 0;
       return 0;
-    }
+    };
+
+    // ----------------------------
+    // ✅ Asegurar inputs requeridos por backend
+    // ----------------------------
+    const ensureHiddenInput = (id, name) => {
+      let $el = $('#' + id);
+      if ($el.length) return $el;
+
+      // si no existe lo creamos
+      $el = $(`<input type="hidden" id="${esc(id)}" name="${esc(name)}">`);
+      $form.append($el);
+      return $el;
+    };
+
+    const initDynamicFields = () => {
+      // titulo y plantilla (backend los espera)
+      $titulo = ensureHiddenInput('doc_titulo', 'titulo');
+      $plantilla = ensureHiddenInput('doc_plantilla', 'plantilla');
+
+      // tipo_persona (no existe en tu modal actual → lo insertamos encima del select de tipo_documento)
+      if (!$('#doc_tipo_persona').length) {
+        const personaHtml = `
+          <div class="mb-3" id="wrap_doc_tipo_persona">
+            <label for="doc_tipo_persona" class="form-label">Tipo de persona</label>
+            <select class="form-select form-select-sm" name="tipo_persona" id="doc_tipo_persona" required>
+              <option value="">-- Seleccione --</option>
+              <option value="PN">Persona Natural</option>
+              <option value="PN_CONYUGE">Persona Natural con cónyuge</option>
+              <option value="PJ">Persona Jurídica</option>
+            </select>
+            <div class="form-text">Primero elige el tipo de persona; luego se habilita el tipo de contrato.</div>
+          </div>
+        `;
+
+        // intenta insertarlo antes del bloque del tipo_documento
+        const $wrapTipoDoc = $tipoDocumento.closest('.mb-3');
+        if ($wrapTipoDoc.length) $wrapTipoDoc.before(personaHtml);
+        else $form.prepend(personaHtml);
+
+        $tipoPersona = $('#doc_tipo_persona');
+      } else {
+        $tipoPersona = $('#doc_tipo_persona');
+      }
+
+      // cascada: tipo_documento inicia deshabilitado hasta elegir tipo_persona
+      if ($tipoDocumento.length) {
+        $tipoDocumento.prop('disabled', true);
+      }
+    };
 
     // ----------------------------
     // Render tabla documentos
     // ----------------------------
-    function renderDocsTable(rows) {
+    const renderDocsTable = (rows) => {
       if (!$docsBody.length) return;
 
       if (!Array.isArray(rows) || rows.length === 0) {
@@ -201,86 +207,90 @@
       }).join('');
 
       $docsBody.html(html);
-    }
+    };
 
     // ----------------------------
-    // Cargar datos desde backend
+    // Cargar backend
     // ----------------------------
-    function cargarListaDocumentos(idLote) {
+    const cargarInfoLote = (idLote) => {
+      if (!idLote) return $.Deferred().resolve().promise();
+
+      return $.getJSON('index.php?c=lotes&a=get&id=' + encodeURIComponent(idLote))
+        .done(function (resp) {
+          const d = (resp && resp.data) ? resp.data : resp;
+          if (!d) return;
+
+          const loteTxt = d.codigo || d.lote_codigo || d.lote_codigo_snapshot || d.numero || ('ID ' + idLote);
+          const proyectoTxt = d.proyecto_nombre || d.proyecto || '—';
+          const clienteTxt = d.cliente_nombre || d.cliente || d.cliente_fullname || '—';
+          const estadoTxt = d.estado || d.estado_lote || '—';
+
+          $lblLote.text(loteTxt);
+          $lblProyecto.text(proyectoTxt);
+          $lblCliente.text(clienteTxt);
+          $lblEstado.text(estadoTxt);
+        })
+        .fail(function (xhr) {
+          console.error('[docs] lotes/get fail', xhr.responseText);
+        });
+    };
+
+    const cargarListaDocumentos = (idLote) => {
       if (!idLote) return;
-      console.log('[docs] cargando list_by_lote, idLote=', idLote);
+
       setLoadingDocs('Cargando documentos...');
+      $alertReserva.html('');
 
       $.getJSON('index.php?c=documentos&a=list_by_lote&id_lote=' + encodeURIComponent(idLote))
         .done(function (resp) {
-          // fillDataPerson(resp);
-          console.log(resp)
+          if (Array.isArray(resp)) {
+            renderDocsTable(resp);
+            return;
+          }
 
-          if (resp) {
-            $("#doc_lbl_cliente").html(`${resp.numero_documento} - ${resp.nombres} ${resp.apellidos}`);
+          if (resp && typeof resp === 'object') {
+            if (resp.numero_documento || resp.nombres) {
+              $lblCliente.html(`${esc(resp.numero_documento || '')} - ${esc(resp.nombres || '')} ${esc(resp.apellidos || '')}`);
+            }
 
-            if(resp.tipo_documento_generado == "RESERVA"){
-              $("#alert-reserva").html(`
+            if (String(resp.tipo_documento_generado || '').toUpperCase() === 'RESERVA' && resp.id_lote_documento) {
+              $alertReserva.html(`
                 <div class="alert alert-success d-flex flex-column align-items-center text-center" role="alert">
                   <div class="d-flex align-items-center gap-2">
                     <i class="bi bi-check-circle-fill fs-4"></i>
-                    <h3>¡Felicitaciones, tu documento ha sido generado!</h3>
+                    <h5 class="mb-0">¡Documento generado!</h5>
                   </div>
 
-                  <button type="button" id="btnDownloadPDF" data-id="${resp.id_lote_documento}" class="btn btn-primary btn-lg mt-3" download>
+                  <button type="button"
+                          id="btnDownloadPDF"
+                          data-id="${esc(resp.id_lote_documento)}"
+                          class="btn btn-primary btn-lg mt-3">
                     <i class="bi bi-file-earmark-pdf-fill me-2"></i>
-                    Descargar PDF
+                    Ver / Descargar PDF
                   </button>
                 </div>
               `);
-            }else{
-              $("#alert-reserva").html("");
             }
+
+            const rows = resp.data || resp.rows || resp.items;
+            if (Array.isArray(rows)) renderDocsTable(rows);
+            else renderDocsTable([]);
+            return;
           }
 
-          // const rows = normalizeRows(resp);
-          // console.log('[docs] respuesta list_by_lote:', resp, '=> rows:', rows.length);
-          // renderDocsTable(rows);
+          renderDocsTable([]);
         })
         .fail(function (xhr) {
           console.error('[docs] list_by_lote fail', xhr.responseText);
           toastErr('No se pudo cargar la lista de documentos.');
           setLoadingDocs('Error al cargar documentos.');
         });
-    }
-
-    function cargarInfoLote(idLote) {
-      if (!idLote) return $.Deferred().resolve().promise();
-
-      return $.getJSON('index.php?c=lotes&a=get&id=' + encodeURIComponent(idLote))
-        .done(function (resp) {
-          // puede venir envuelto {status,data}
-          const d = (resp && resp.data) ? resp.data : resp;
-          if (!d) return;
-
-          // Ajuste flexible de nombres (para no amarrarnos a un solo key)
-          const loteTxt = d.codigo || d.lote_codigo || d.lote_codigo_snapshot || d.numero || ('ID ' + idLote);
-          const proyectoTxt = d.proyecto_nombre || d.proyecto || '—';
-          const clienteTxt = d.cliente_nombre || d.cliente || d.cliente_fullname || '—';
-          const estadoTxt = d.estado || d.estado_lote || '—';
-
-          if ($lblLote.length)     $lblLote.text(loteTxt);
-          if ($lblProyecto.length) $lblProyecto.text(proyectoTxt);
-          if ($lblCliente.length)  $lblCliente.text(clienteTxt);
-          if ($lblEstado.length)   $lblEstado.text(estadoTxt);
-        })
-        .fail(function (xhr) {
-          console.error('[docs] lotes/get fail', xhr.responseText);
-        });
-    }
+    };
 
     // ----------------------------
-    // Form dinámico por tipo
-    // (Importante: nombres coherentes con tu JSON histórico)
+    // Campos por tipo (NO plantillas.html)
     // ----------------------------
-    function renderCamposPorTipo(tipo) {
-      if (!$camposContainer.length) return;
-
+    const renderCamposPorTipo = (tipo) => {
       let html = '';
 
       switch (tipo) {
@@ -323,11 +333,11 @@
               <div class="row g-2">
                 <div class="col-md-4">
                   <label class="form-label form-label-sm">Monto</label>
-                  <input type="number" step="0.01" min="0" name="sep_monto" class="form-control form-control-sm" required>
+                  <input type="number" step="0.01" min="0" name="pago_monto" class="form-control form-control-sm" required>
                 </div>
                 <div class="col-md-4">
                   <label class="form-label form-label-sm">Medio</label>
-                  <select name="sep_medio" class="form-select form-select-sm">
+                  <select name="pago_medio" class="form-select form-select-sm" required>
                     <option value="">--</option>
                     <option value="EFECTIVO">EFECTIVO</option>
                     <option value="TRANSFERENCIA">TRANSFERENCIA</option>
@@ -337,11 +347,11 @@
                 </div>
                 <div class="col-md-4">
                   <label class="form-label form-label-sm">Fecha</label>
-                  <input type="date" name="sep_fecha" class="form-control form-control-sm" required>
+                  <input type="date" name="pago_fecha" class="form-control form-control-sm" required>
                 </div>
                 <div class="col-md-4">
                   <label class="form-label form-label-sm">Plazo (días)</label>
-                  <input type="number" min="1" name="sep_plazo_dias" class="form-control form-control-sm" value="7">
+                  <input type="number" min="1" name="separacion_plazo_dias" class="form-control form-control-sm" value="30">
                 </div>
               </div>
             </div>
@@ -354,16 +364,22 @@
               <div class="fw-semibold small mb-2">Datos de compraventa</div>
               <div class="row g-2">
                 <div class="col-md-4">
-                  <label class="form-label form-label-sm">Precio total</label>
-                  <input type="number" step="0.01" min="0" name="cv_precio_total" class="form-control form-control-sm" required>
-                </div>
-                <div class="col-md-4">
                   <label class="form-label form-label-sm">Inicial</label>
-                  <input type="number" step="0.01" min="0" name="cv_inicial" class="form-control form-control-sm" required>
+                  <input type="number" step="0.01" min="0" name="precio_inicial_pago" class="form-control form-control-sm" required>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label form-label-sm">Saldo</label>
-                  <input type="number" step="0.01" min="0" name="cv_saldo" class="form-control form-control-sm">
+                  <label class="form-label form-label-sm">Medio</label>
+                  <select name="pago_medio_inicial" class="form-select form-select-sm" required>
+                    <option value="">--</option>
+                    <option value="EFECTIVO">EFECTIVO</option>
+                    <option value="TRANSFERENCIA">TRANSFERENCIA</option>
+                    <option value="YAPE/PLIN">YAPE/PLIN</option>
+                    <option value="OTRO">OTRO</option>
+                  </select>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label form-label-sm">Fecha</label>
+                  <input type="date" name="pago_fecha_inicial" class="form-control form-control-sm" required>
                 </div>
               </div>
             </div>
@@ -375,13 +391,21 @@
             <div class="border rounded p-2">
               <div class="fw-semibold small mb-2">Datos de anulación</div>
               <div class="row g-2">
-                <div class="col-md-8">
+                <div class="col-md-6">
                   <label class="form-label form-label-sm">Motivo</label>
-                  <input type="text" name="an_motivo" class="form-control form-control-sm" required>
+                  <input type="text" name="motivo_anulacion" class="form-control form-control-sm" required>
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label form-label-sm">Fecha</label>
-                  <input type="date" name="an_fecha" class="form-control form-control-sm" required>
+                <div class="col-md-3">
+                  <label class="form-label form-label-sm">Tipo documento anulado</label>
+                  <select name="tipo_documento_anulado" class="form-select form-select-sm" required>
+                    <option value="RESERVA">RESERVA</option>
+                    <option value="SEPARACION">SEPARACION</option>
+                    <option value="COMPRAVENTA">COMPRAVENTA</option>
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label form-label-sm">Fecha doc. anulado</label>
+                  <input type="date" name="fecha_documento_anulado" class="form-control form-control-sm" required>
                 </div>
               </div>
             </div>
@@ -397,29 +421,110 @@
       }
 
       $camposContainer.html(html);
-    }
-
-    // Plantilla por defecto (si está vacío)
-    function aplicarPlantillaPorDefecto(tipo) {
-      if (!$plantilla.length) return;
-
-      if ($plantilla.val()) return;
-
-      const map = {
-        'RESERVA': 'contrato_reserva_natural.html',
-        'SEPARACION': 'contrato_separacion_natural.html',
-        'COMPRAVENTA': 'contrato_compraventa_natural.html',
-        'ANULACION': 'anulacion_operacion.html'
-      };
-
-      if (map[tipo]) $plantilla.val(map[tipo]);
-    }
+    };
 
     // ----------------------------
-    // Detectar idLote (DOM + DataTables)
+    // ✅ Resolver plantilla por (tipo_persona + tipo_documento)
     // ----------------------------
-    function detectarIdLoteDesdeElemento(el) {
-      // 1) data-* directo
+    const getTipoPersona = () => (String($tipoPersona.val() || '').trim().toUpperCase());
+    const getTipoDocumento = () => (String($tipoDocumento.val() || '').trim().toUpperCase());
+
+    const lockTipoDocumento = (locked) => {
+      if (!$tipoDocumento.length) return;
+      $tipoDocumento.prop('disabled', !!locked);
+      if (locked) $tipoDocumento.val('');
+    };
+
+    const setPlantillaInfo = ({ id, asunto }) => {
+      if (id) $plantilla.val(String(id));
+      if (asunto && !$titulo.val()) $titulo.val(String(asunto)); // si ya escribiste titulo manual, no lo pisa
+      if (asunto && $titulo.val().trim() === '') $titulo.val(String(asunto));
+    };
+
+    const limpiarPlantillaInfo = () => {
+      $plantilla.val('');
+      $titulo.val('');
+    };
+
+    // Endpoint esperado:
+    // GET index.php?c=plantillas&a=resolve&tipo_documento=RESERVA&tipo_persona=PN
+    const resolvePlantilla = () => {
+      const tp = getTipoPersona();
+      const td = getTipoDocumento();
+
+      if (!tp || !td) {
+        limpiarPlantillaInfo();
+        return $.Deferred().resolve({ status: false, msg: 'incompleto' }).promise();
+      }
+
+      // feedback simple
+      $btnGenerar.prop('disabled', true);
+      $btnGenerar.data('orig-text', $btnGenerar.text());
+      $btnGenerar.text('Cargando plantilla...');
+
+      return $.getJSON('index.php?c=plantillas&a=resolve', {
+        tipo_persona: tp,
+        tipo_documento: td
+      })
+        .done(function (resp) {
+          // Formatos aceptados:
+          // {status:true, data:{id, asunto}}
+          // {status:true, id, asunto}
+          // {id, asunto}
+          const ok = (resp && (resp.status === true || resp.id || (resp.data && resp.data.id)));
+          const d = (resp && resp.data) ? resp.data : resp;
+
+          if (!ok || !d || !d.id) {
+            limpiarPlantillaInfo();
+            toastErr(resp?.msg || 'No se encontró plantilla ACTIVA para esta combinación.');
+            return;
+          }
+
+          setPlantillaInfo({ id: d.id, asunto: d.asunto });
+        })
+        .fail(function (xhr) {
+          // Si aún no creaste el endpoint, no revienta el flujo, pero te avisa.
+          console.warn('[plantillas/resolve] fail', xhr.status, xhr.responseText);
+          limpiarPlantillaInfo();
+          toastErr('No pude resolver la plantilla (endpoint plantillas/resolve no disponible).');
+        })
+        .always(function () {
+          const orig = $btnGenerar.data('orig-text');
+          $btnGenerar.prop('disabled', false);
+          if (orig) $btnGenerar.text(orig);
+        });
+    };
+
+    // ----------------------------
+    // Abrir modal
+    // ----------------------------
+    const limpiarModal = () => {
+      if ($form.length) $form[0].reset();
+
+      $idLote.val('');
+      $lblLote.text('—');
+      $lblProyecto.text('—');
+      $lblCliente.text('—');
+      $lblEstado.text('—');
+
+      $alertReserva.html('');
+
+      $camposContainer.html(`
+        <div class="alert alert-info small mb-0">
+          Selecciona un tipo de documento para mostrar los campos necesarios.
+        </div>
+      `);
+
+      setLoadingDocs('Selecciona un lote para ver sus documentos.');
+      hideResultPanel();
+
+      // cascada
+      if ($tipoPersona && $tipoPersona.length) $tipoPersona.val('');
+      lockTipoDocumento(true);
+      limpiarPlantillaInfo();
+    };
+
+    const detectarIdLoteDesdeElemento = (el) => {
       let id =
         $(el).data('id') || $(el).data('lote') || $(el).data('id_lote') ||
         $(el).attr('data-id') || $(el).attr('data-lote') || $(el).attr('data-id_lote');
@@ -427,13 +532,10 @@
       id = parseInt(id, 10);
       if (id && !isNaN(id)) return id;
 
-      // 2) desde <tr>
       const $tr = $(el).closest('tr');
-      id = $tr.data('id') || $tr.data('lote') || $tr.data('id_lote');
-      id = parseInt(id, 10);
+      id = parseInt($tr.data('id') || $tr.data('lote') || $tr.data('id_lote'), 10);
       if (id && !isNaN(id)) return id;
 
-      // 3) DataTables row().data()
       try {
         const tableEl = $tr.closest('table')[0];
         if (tableEl && $.fn.dataTable && $.fn.dataTable.isDataTable(tableEl)) {
@@ -443,121 +545,102 @@
           const parsed = parseInt(cand, 10);
           if (parsed && !isNaN(parsed)) return parsed;
         }
-      } catch (e) {
-        // no-op
-      }
+      } catch (e) {}
 
       return 0;
-    }
+    };
 
-    // ----------------------------
-    // ABRIR MODAL: listener robusto
-    // - prioridad: si existe data-action="documentos" o clases típicas
-    // - fallback: texto "Documentos" (pero evitando navbar)
-    // ----------------------------
-    function abrirModalParaLote(idLote) {
+    const abrirModalParaLote = (idLote) => {
       if (!idLote) return;
-
       limpiarModal();
       $idLote.val(idLote);
 
-      // abrir modal primero para feedback visual
       modalDocumento.show();
 
-      // cargar data
       $.when(cargarInfoLote(idLote)).always(function () {
         cargarListaDocumentos(idLote);
       });
-    }
+    };
 
-    // Listener 1: clases/atributos
     $(document).on('click', '.btnDocs, .btnDocumentos, .btn-documentos, .btnLoteDocs, [data-action="documentos"]', function (e) {
       e.preventDefault();
       e.stopPropagation();
 
       const idLote = detectarIdLoteDesdeElemento(this);
-      console.log('[docs click selector] idLote=', idLote);
-
-      if (!idLote) {
-        toastErr('No detecté el ID del lote (data-id / row / DataTables).');
-        return;
-      }
-
+      if (!idLote) return toastErr('No detecté el ID del lote.');
       abrirModalParaLote(idLote);
     });
 
-    // Listener 2: fallback por texto “Documentos” (evita menu superior)
+    // fallback suave (menos agresivo)
     $(document).on('click', 'a,button', function (e) {
       const $el = $(this);
-
-      // si ya lo capturó el listener 1, no repetimos
       if ($el.is('.btnDocs, .btnDocumentos, .btn-documentos, .btnLoteDocs, [data-action="documentos"]')) return;
-
-      // evita capturar clicks dentro del modal
-      if ($el.closest('#modalLoteDocumentos').length) return;
+      if ($el.closest('#modalLoteDocumentos, nav, .navbar, .topbar, header').length) return;
 
       const txt = ($el.text() || '').trim().toLowerCase();
-      if (!txt || !txt.includes('documentos')) return;
+      if (txt !== 'documentos') return;
 
-      // evita navbar/topbar: si está en header/nav, lo ignoramos
-      if ($el.closest('nav, .navbar, .topbar, header').length) return;
+      const idLote = detectarIdLoteDesdeElemento(this);
+      if (!idLote) return;
 
       e.preventDefault();
       e.stopPropagation();
-
-      const idLote = detectarIdLoteDesdeElemento(this);
-      console.log('[docs click fallback] idLote=', idLote);
-
-      if (!idLote) return; // si no hay id, no molestamos
       abrirModalParaLote(idLote);
     });
 
     // ----------------------------
-    // Cambio de tipo: mostrar formulario dinámico (EL BUG QUE TENÍAS)
+    // ✅ Cascada: tipo_persona -> habilita tipo_documento
     // ----------------------------
-    $tipoDocumento.on('change', function () {
-      const tipo = $(this).val();
-      console.log('[docs] cambio tipo_documento=', tipo);
+    const onPersonaChange = () => {
+      hideResultPanel();
+      renderCamposPorTipo(''); // limpia campos
+      limpiarPlantillaInfo();
 
-      hideResultPanel(); // si cambias tipo, ocultamos panel de resultado anterior
-      renderCamposPorTipo(tipo);
-      aplicarPlantillaPorDefecto(tipo);
-
-      // título sugerido si está vacío
-      if ($titulo.length && !$titulo.val() && tipo) {
-        $titulo.val('Documento ' + tipo);
+      const tp = getTipoPersona();
+      if (!tp) {
+        lockTipoDocumento(true);
+        return;
       }
-    });
+
+      lockTipoDocumento(false);
+    };
 
     // ----------------------------
-    // Submit: generar documento
+    // ✅ Al cambiar tipo_documento: render campos + resolver plantilla
+    // ----------------------------
+    const onDocumentoChange = () => {
+      hideResultPanel();
+
+      const tipo = getTipoDocumento();
+      renderCamposPorTipo(tipo);
+
+      // Resolver plantilla (id y asunto) según tipo_persona + tipo_documento
+      resolvePlantilla();
+    };
+
+    // ----------------------------
+    // submit
     // ----------------------------
     $form.on('submit', function (e) {
       e.preventDefault();
 
       const idLote = parseInt($idLote.val(), 10);
-      const tipo = ($tipoDocumento.val() || '').trim();
+      const tipoPersona = getTipoPersona();
+      const tipoDoc = getTipoDocumento();
 
       if (!idLote) return toastErr('Falta id_lote.');
-      if (!tipo) return toastErr('Selecciona el tipo de documento.');
-
-      // plantilla por defecto si no eligieron
-      aplicarPlantillaPorDefecto(tipo);
-
-      // título por defecto si no pusieron
-      if ($titulo.length && !$titulo.val()) $titulo.val('Documento ' + tipo);
+      if (!tipoPersona) return toastErr('Selecciona el tipo de persona.');
+      if (!tipoDoc) return toastErr('Selecciona el tipo de documento.');
+      if (!$plantilla.val()) return toastErr('No hay plantilla resuelta (ID en BD).');
 
       hideResultPanel();
 
-      // UX: bloquear botón
-      if ($btnGenerar.length) {
-        $btnGenerar.prop('disabled', true).text('Generando...');
-      }
+      $btnGenerar.prop('disabled', true).text('Generando...');
 
       $.ajax({
         url: 'index.php?c=documentos&a=save',
         method: 'POST',
-        data: $form.serialize(),
+        data: $form.serialize(), // incluye tipo_persona + tipo_documento + plantilla + titulo + campos
         dataType: 'json'
       })
         .done(function (resp) {
@@ -568,23 +651,11 @@
 
           const docId = extractDocId(resp);
 
-          // Recargar lista
           cargarListaDocumentos(idLote);
+          if (docId) showResultPanel(docId);
 
-          // Mostrar panel de “Documento generado” si tenemos ID
-          if (docId) {
-            showResultPanel(docId);
-          }
-
-          // Mensaje corto
           if (window.Swal) {
-            Swal.fire({
-              icon: 'success',
-              title: 'Documento generado',
-              text: resp.msg || 'Listo',
-              timer: 1000,
-              showConfirmButton: false
-            });
+            Swal.fire({ icon: 'success', title: 'Documento generado', text: resp.msg || 'Listo', timer: 900, showConfirmButton: false });
           } else {
             toastOk(resp.msg || 'Documento generado');
           }
@@ -594,39 +665,38 @@
           toastErr('Error interno al guardar/generar.');
         })
         .always(function () {
-          if ($btnGenerar.length) {
-            $btnGenerar.prop('disabled', false).text('Generar documento');
-          }
+          $btnGenerar.prop('disabled', false).text('Generar documento');
         });
     });
 
-    // Descargar PDF
-    $(document).on("click", "#btnDownloadPDF", function(){
-      const documentId = $(this).data("id");
-      const redirectUrl = `index.php?c=documentos&a=generatePDF&documentID=${documentId}`;
+    // Ver/Descargar PDF (tu botón)
+    $(document).on('click', '#btnDownloadPDF', function () {
+      const documentId = $(this).data('id');
+      if (!documentId) return;
 
-      // Tamaño de la ventana
-      const width = 1200;   // ancho en píxeles
-      const height = 650;  // alto en píxeles
+      const redirectUrl = `index.php?c=documentos&a=generatePDF&documentID=${encodeURIComponent(documentId)}`;
 
-      // Posición centrada en la pantalla
+      const width = 1200, height = 650;
       const left = (window.screen.width / 2) - (width / 2);
       const top = (window.screen.height / 2) - (height / 2);
 
-      // Abrir nueva ventana centrada
       window.open(
-          redirectUrl,
-          '_blank',
-          `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+        redirectUrl,
+        '_blank',
+        `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
       );
     });
 
-    // Limpieza al cerrar modal
-    modalEl.addEventListener('hidden.bs.modal', function () {
-      limpiarModal();
-    });
+    // ----------------------------
+    // Init
+    // ----------------------------
+    initDynamicFields();
 
-    // Estado inicial
+    // bind events
+    $(document).on('change', '#doc_tipo_persona', onPersonaChange);
+    $tipoDocumento.on('change', onDocumentoChange);
+
+    modalEl.addEventListener('hidden.bs.modal', limpiarModal);
     limpiarModal();
   });
 })();
