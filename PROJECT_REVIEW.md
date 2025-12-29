@@ -19,6 +19,7 @@ Este documento resume observaciones de arquitectura, seguridad y mantenibilidad 
 
 ## Estado tras la limpieza de redundancias
 - Se eliminó el respaldo obsoleto `DocumentosController-Juan.php` y el árbol duplicado `app/TemplatesXX`, dejando solo las plantillas vigentes. No se encontraron referencias activas a estos archivos en el ruteo actual, por lo que no se requiere acción adicional.
+- Verificación reciente: ambos elementos permanecen ausentes del árbol (`app/Controllers/DocumentosController-Juan.php`, `app/TemplatesXX/`) y no aparecen entradas residuales en el repositorio.
 
 ## Validaciones más recientes
 - **Linting PHP**: Se ejecutó `php -l` sobre todos los archivos en `app/` y no se encontraron errores de sintaxis.
